@@ -28,6 +28,9 @@ Thumbs.db
 # Extracted files
 pptx_extracted/
 
+# PowerPoint files
+*.pptx
+
 # Env files
 .env
 .env.local

@@ -41,8 +41,8 @@ AI is moving out from the digital world into the physical world. In this hands-o
    - Code: Complete and working
 
 2. **Reachy Mini** (Pollen Robotics)
-   - Small humanoid robot
-   - Expressive interaction
+   - Expressive robot head
+   - Moves, looks around, interacts
 
 3. **IKEA IoT Devices**
    - DIRIGERA hub + Zigbee devices

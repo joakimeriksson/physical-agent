@@ -124,10 +124,10 @@ layout: two-cols
 # Reachy Mini
 
 ### Pollen Robotics
-- Small humanoid robot
-- Expressive head with antennas
-- Two arms with grippers
+- Expressive robot head
+- Antennas for expression
 - Camera in head
+- Moves and looks around
 - Natural interaction
 
 ::right::
@@ -492,7 +492,7 @@ Groups rotate through 3 physical device stations (~30 min each)
 | Station | Device | Experience |
 |---------|--------|------------|
 | 🍬 Candytron | Niryo Ned 2 robot arm | Vision + Speech + Robot control |
-| 🤖 Reachy Mini | Humanoid robot | Expressive interaction |
+| 🤖 Reachy Mini | Expressive robot head | Look and interact |
 | 💡 IKEA Smart Home | DIRIGERA hub | Real IoT device control |
 
 <v-click>
