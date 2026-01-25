@@ -11,7 +11,6 @@ Usage:
     pixi run download-models  # Pre-download models
 """
 
-import subprocess
 import sys
 import wave
 from pathlib import Path
@@ -78,11 +77,15 @@ def download_piper_voice(voice: str = PIPER_VOICE):
 
     if not onnx_path.exists():
         print(f"Downloading Piper voice '{voice}'...")
-        base_url = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium"
-
-        import urllib.request
+        base_url = (
+            "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+            "/en/en_US/lessac/medium"
+        )
+        import urllib.request  # pylint: disable=import-outside-toplevel
         urllib.request.urlretrieve(f"{base_url}/en_US-lessac-medium.onnx", onnx_path)
-        urllib.request.urlretrieve(f"{base_url}/en_US-lessac-medium.onnx.json", json_path)
+        urllib.request.urlretrieve(
+            f"{base_url}/en_US-lessac-medium.onnx.json", json_path
+        )
         print("Voice downloaded.")
 
     return onnx_path
@@ -125,6 +128,7 @@ def speak_to_file(text: str, path: Path):
     audio = np.concatenate(audio_arrays) if audio_arrays else np.array([])
     audio_int16 = (audio * 32767).astype(np.int16)
 
+    # pylint: disable=no-member  # wave.open("wb") returns Wave_write
     with wave.open(str(path), "wb") as wav:
         wav.setnchannels(1)
         wav.setsampwidth(2)
@@ -143,6 +147,7 @@ def download_models():
 
 
 def main():
+    """Main entry point for speech lab CLI."""
     if len(sys.argv) < 2:
         print(__doc__)
         return

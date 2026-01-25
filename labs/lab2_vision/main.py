@@ -70,7 +70,7 @@ def draw_detections(image: np.ndarray, detections: list[dict]) -> np.ndarray:
         cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         # Draw label background
-        (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+        (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         cv2.rectangle(img, (x1, y1 - 25), (x1 + w, y1), (0, 255, 0), -1)
 
         # Draw label text
@@ -81,7 +81,9 @@ def draw_detections(image: np.ndarray, detections: list[dict]) -> np.ndarray:
 
 # --- Segmentation ---
 
-def segment_objects(image: np.ndarray, confidence: float = 0.5) -> tuple[list[dict], np.ndarray]:
+def segment_objects(  # pylint: disable=too-many-locals
+    image: np.ndarray, confidence: float = 0.5
+) -> tuple[list[dict], np.ndarray]:
     """Segment objects in an image.
 
     Args:
@@ -130,11 +132,11 @@ def draw_segment_labels(image: np.ndarray, detections: list[dict]) -> np.ndarray
     img = image.copy()
 
     for det in detections:
-        x1, y1, x2, y2 = det["box"]
+        x1, y1, _, _ = det["box"]
         label = f"{det['class']} {det['confidence']:.0%}"
 
         # Draw label background
-        (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+        (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         cv2.rectangle(img, (x1, y1 - 25), (x1 + w, y1), (0, 0, 0), -1)
         cv2.putText(img, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
@@ -271,6 +273,7 @@ def list_classes():
 # --- Main ---
 
 def main():
+    """Main entry point for vision lab CLI."""
     if len(sys.argv) < 2:
         print(__doc__)
         return
@@ -285,7 +288,7 @@ def main():
         conf = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
         detect_single(conf)
 
-    elif cmd == "segment" or cmd == "segment-webcam":
+    elif cmd in ("segment", "segment-webcam"):
         conf = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
         run_segment_webcam(conf)
 

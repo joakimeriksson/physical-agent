@@ -17,7 +17,6 @@ Usage:
 import base64
 import json
 import re
-import sys
 import time
 import urllib.request
 from pathlib import Path
@@ -30,10 +29,15 @@ import sounddevice as sd
 
 MODEL = "gemma3:4b"
 CHECKS = [
-    ("clothing", "Evaluate their clothing and attire for a business meeting. Is it professional, casual, or too casual? Any issues like wrinkles, stains, or inappropriate items?"),
-    ("grooming", "Evaluate their grooming and hair. Is it tidy and presentable? Any obvious issues?"),
-    ("background", "Evaluate the background behind them. Is it appropriate for a video call? Any distracting or unprofessional items visible?"),
-    ("pose", "Evaluate their pose and facial expression. Are they sitting up straight? Do they look confident and approachable? Any funny faces or awkward poses?"),
+    ("clothing", "Evaluate their clothing and attire for a business meeting. "
+     "Is it professional, casual, or too casual? Any issues like wrinkles, "
+     "stains, or inappropriate items?"),
+    ("grooming", "Evaluate their grooming and hair. Is it tidy and presentable? "
+     "Any obvious issues?"),
+    ("background", "Evaluate the background behind them. Is it appropriate for "
+     "a video call? Any distracting or unprofessional items visible?"),
+    ("pose", "Evaluate their pose and facial expression. Are they sitting up "
+     "straight? Do they look confident and approachable? Any funny faces?"),
 ]
 
 # Shared models directory
@@ -92,7 +96,7 @@ def image_to_base64(image: np.ndarray) -> str:
 
 # --- VLM ---
 
-def analyze_aspect(image: np.ndarray, aspect: str, prompt: str) -> tuple[int, str]:
+def analyze_aspect(image: np.ndarray, prompt: str) -> tuple[int, str]:
     """Analyze one aspect of the image. Returns (score, feedback)."""
     image_b64 = image_to_base64(image)
 
@@ -136,7 +140,7 @@ Remember: This will be spoken aloud, so no markdown or special characters."""
                 feedback = feedback_match.group(1).strip()
 
             return score, feedback
-    except Exception as e:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
         return 5, f"Could not analyze: {e}"
 
 
@@ -164,9 +168,10 @@ def download_piper_voice():
 
 def _get_piper():
     """Load Piper voice (cached)."""
-    global _piper_voice
+    global _piper_voice  # pylint: disable=global-statement
     if _piper_voice is None:
-        from piper import PiperVoice
+        from piper import PiperVoice  # pylint: disable=import-outside-toplevel
+
         model_path = download_piper_voice()
         print("Loading TTS...")
         _piper_voice = PiperVoice.load(str(model_path))
@@ -206,7 +211,7 @@ def analyze_all_aspects(image: np.ndarray) -> dict:
     results = {}
     for aspect, prompt in CHECKS:
         print(f"  Analyzing {aspect}...")
-        score, feedback = analyze_aspect(image, aspect, prompt)
+        score, feedback = analyze_aspect(image, prompt)
         results[aspect] = (score, feedback)
     return results
 
@@ -281,8 +286,10 @@ def run_coach():
         low_scores = [a for a, (s, _) in results.items() if s < 7]
 
         if low_scores:
-            speak(f"I noticed some areas could be improved: {', '.join(low_scores)}. Would you like to try again?")
-            print(f"\n🔄 Try again? (y/n): ", end="")
+            areas = ", ".join(low_scores)
+            speak(f"I noticed some areas could be improved: {areas}. "
+                  "Would you like to try again?")
+            print("\n🔄 Try again? (y/n): ", end="")
             try:
                 response = input().strip().lower()
                 if response == 'y':
@@ -301,6 +308,7 @@ def run_coach():
 
 
 def main():
+    """Main entry point for business coach lab."""
     run_coach()
 
 

@@ -62,11 +62,12 @@ Be concise.""",
             try:
                 result = await agent.run(user_input)
                 print(f"Agent: {result.output}\n")
-            except Exception as e:
-                print(f"Error: {e}\n")
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                print(f"Error: {err}\n")
 
 
 def main():
+    """Main entry point for MCP agent."""
     asyncio.run(run_agent())
 
 

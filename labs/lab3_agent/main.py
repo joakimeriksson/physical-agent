@@ -60,9 +60,10 @@ def calculator(expression: str) -> str:
         "pow": pow,
     }
     try:
+        # pylint: disable=eval-used  # Safe: restricted builtins
         result = eval(expression, {"__builtins__": {}}, allowed)
         return f"{expression} = {result}"
-    except Exception as e:
+    except (ValueError, TypeError, SyntaxError, NameError) as e:
         return f"Error: {e}"
 
 
@@ -82,8 +83,8 @@ def get_current_model() -> str:
 @agent.tool_plain
 def system_info() -> str:
     """Get system information (hostname, OS, Python version, Ollama models)."""
-    import platform
-    import subprocess
+    import platform  # pylint: disable=import-outside-toplevel
+    import subprocess  # pylint: disable=import-outside-toplevel
 
     info = [
         f"Current LLM: {MODEL_NAME}",
@@ -94,12 +95,14 @@ def system_info() -> str:
 
     # Get Ollama models
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, timeout=5, check=False
+        )
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")[1:]  # Skip header
             models = [line.split()[0] for line in lines if line.strip()]
             info.append(f"Available Ollama models: {', '.join(models[:5])}")
-    except Exception:
+    except (OSError, subprocess.TimeoutExpired):
         pass
 
     return "\n".join(info)
@@ -112,14 +115,17 @@ def list_files(directory: str = ".") -> str:
     Args:
         directory: Path to directory (default: current)
     """
-    from pathlib import Path
+    from pathlib import Path  # pylint: disable=import-outside-toplevel
+
     try:
         path = Path(directory)
         files = list(path.iterdir())
         if not files:
             return f"No files in {directory}"
-        return "\n".join(f"  {f.name}" + ("/" if f.is_dir() else "") for f in files[:20])
-    except Exception as e:
+        return "\n".join(
+            f"  {f.name}" + ("/" if f.is_dir() else "") for f in files[:20]
+        )
+    except OSError as e:
         return f"Error: {e}"
 
 
@@ -130,13 +136,14 @@ def read_file(path: str) -> str:
     Args:
         path: Path to the file
     """
-    from pathlib import Path
+    from pathlib import Path  # pylint: disable=import-outside-toplevel
+
     try:
-        content = Path(path).read_text()
+        content = Path(path).read_text(encoding="utf-8")
         if len(content) > 1000:
             return content[:1000] + "\n... (truncated)"
         return content
-    except Exception as e:
+    except OSError as e:
         return f"Error: {e}"
 
 
@@ -146,40 +153,47 @@ def chat(debug: bool = False):
     """Interactive chat loop."""
     print("Chat with AI Agent (local Ollama)")
     print("Type 'quit' to exit, 'debug' to toggle debug mode\n")
-    print("Tools: calculator, get_current_time, get_current_model, system_info, list_files, read_file\n")
+    print("Tools: calculator, get_current_time, get_current_model,")
+    print("       system_info, list_files, read_file\n")
 
     while True:
         try:
             user_input = input("You: ").strip()
-            if user_input.lower() in ("quit", "exit", "q"):
-                print("Bye!")
-                break
-            if user_input.lower() == "debug":
-                debug = not debug
-                print(f"Debug mode: {'ON' if debug else 'OFF'}\n")
-                continue
-            if not user_input:
-                continue
-
-            result = agent.run_sync(user_input)
-
-            if debug:
-                # Show tool calls
-                for msg in result.new_messages():
-                    if hasattr(msg, 'parts'):
-                        for part in msg.parts:
-                            if hasattr(part, 'tool_name'):
-                                print(f"  [TOOL] {part.tool_name}({getattr(part, 'args', {})})")
-                            if hasattr(part, 'content') and part.content:
-                                print(f"  [RESULT] {part.content[:100]}...")
-
-            print(f"Agent: {result.output}\n")
-
-        except KeyboardInterrupt:
+        except (EOFError, KeyboardInterrupt):
             print("\nBye!")
             break
-        except Exception as e:
+
+        if user_input.lower() in ("quit", "exit", "q"):
+            print("Bye!")
+            break
+        if user_input.lower() == "debug":
+            debug = not debug
+            print(f"Debug mode: {'ON' if debug else 'OFF'}\n")
+            continue
+        if not user_input:
+            continue
+
+        try:
+            result = agent.run_sync(user_input)
+        except Exception as e:  # pylint: disable=broad-exception-caught
             print(f"Error: {e}\n")
+            continue
+
+        if debug:
+            _print_debug_info(result)
+
+        print(f"Agent: {result.output}\n")
+
+
+def _print_debug_info(result):
+    """Print debug info about tool calls."""
+    for msg in result.new_messages():
+        if hasattr(msg, 'parts'):
+            for part in msg.parts:
+                if hasattr(part, 'tool_name'):
+                    print(f"  [TOOL] {part.tool_name}({getattr(part, 'args', {})})")
+                if hasattr(part, 'content') and part.content:
+                    print(f"  [RESULT] {part.content[:100]}...")
 
 
 def run_single(query: str):
@@ -190,6 +204,7 @@ def run_single(query: str):
 
 
 def main():
+    """Main entry point for agent lab CLI."""
     if len(sys.argv) < 2:
         print(__doc__)
         return

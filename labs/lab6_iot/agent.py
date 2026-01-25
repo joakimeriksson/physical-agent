@@ -60,13 +60,14 @@ Be concise.""",
                 try:
                     result = await agent.run(user_input)
                     print(f"Agent: {result.output}\n")
-                except Exception as e:
-                    print(f"Error: {e}\n")
-    except ExceptionGroup:
-        pass  # Suppress MCP client cleanup errors
+                except Exception as err:  # pylint: disable=broad-exception-caught
+                    print(f"Error: {err}\n")
+    except BaseException:  # pylint: disable=broad-except
+        pass  # Suppress MCP client cleanup errors (ExceptionGroup in Python 3.11+)
 
 
 def main():
+    """Main entry point for IoT agent CLI."""
     parser = argparse.ArgumentParser(description='IoT Agent - control smart home via MCP')
     parser.add_argument('--server', default=DEFAULT_SERVER,
                         help=f'MCP server URL (default: {DEFAULT_SERVER})')

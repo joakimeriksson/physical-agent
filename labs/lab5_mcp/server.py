@@ -40,6 +40,7 @@ def calculate(expression: str) -> str:
         "sqrt": math.sqrt, "sin": math.sin, "cos": math.cos,
         "pi": math.pi, "e": math.e,
     }
+    # pylint: disable=eval-used  # Safe: restricted builtins
     return str(eval(expression, {"__builtins__": {}}, allowed))
 
 
