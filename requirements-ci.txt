@@ -1,0 +1,23 @@
+# CI dependencies for pylint analysis
+# These allow pylint to properly analyze imports
+
+# Core
+numpy>=1.26
+httpx>=0.28
+
+# Vision
+opencv-python>=4.10
+ultralytics>=8.3
+
+# Audio (may need system deps)
+sounddevice>=0.5
+
+# AI/Agent
+pydantic-ai>=0.1
+mcp>=1.0
+ollama>=0.3
+
+# Note: Some packages excluded due to complex system dependencies:
+# - pywhispercpp (needs whisper.cpp compilation)
+# - piper-tts (needs audio libraries)
+# - portaudio (system package)

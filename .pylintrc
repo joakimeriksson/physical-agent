@@ -1,0 +1,35 @@
+[MAIN]
+# Minimum Python version to use for version-dependent checks
+py-version = 3.10
+
+# Ignore imports that can't be installed in CI (need compilation/special deps)
+ignored-modules = pywhispercpp,
+                  pywhispercpp.model,
+                  pywhispercpp.utils,
+                  piper
+
+# Allow C extensions to be introspected
+extension-pkg-allow-list = cv2
+
+[TYPECHECK]
+# cv2 is a C extension - pylint can't see its members
+generated-members = cv2.*
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are intentional design choices:
+# C0415: import-outside-toplevel - Intentional lazy loading for slow imports
+# W0603: global-statement - Intentional caching pattern
+# C0103: invalid-name - Private cached variables like _whisper_model
+# R0801: duplicate-code - Similar patterns across labs (educational)
+disable = import-outside-toplevel,
+          global-statement,
+          invalid-name,
+          duplicate-code
+
+[FORMAT]
+# Maximum line length
+max-line-length = 100
+
+[DESIGN]
+# Maximum number of local variables
+max-locals = 20
