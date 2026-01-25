@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Lab 1: Speech-to-Text and Text-to-Speech
+
+Uses whisper.cpp (fast STT) and Piper (natural TTS) - fully local.
+
+Usage:
+    pixi run tts          # Test text-to-speech
+    pixi run record       # Record and transcribe
+    pixi run demo         # Interactive loop
+    pixi run voices       # List available voices
+    pixi run download-models  # Pre-download models
+"""
+
+import subprocess
+import sys
+import wave
+from pathlib import Path
+
+import numpy as np
+import sounddevice as sd
+
+# Shared models directory (project root)
+MODEL_DIR = Path(__file__).parent.parent.parent / "models"
+
+# --- Whisper.cpp STT ---
+
+_whisper_model = None
+
+
+def download_whisper_model(model: str = "base"):
+    """Download whisper.cpp model if not present."""
+    from pywhispercpp.utils import download_model as dl
+    MODEL_DIR.mkdir(exist_ok=True)
+    model_path = MODEL_DIR / f"ggml-{model}.bin"
+    if not model_path.exists():
+        print(f"Downloading Whisper model '{model}'...")
+        dl(model, MODEL_DIR)
+    return model_path
+
+
+def _get_whisper(model: str = "base"):
+    """Load whisper.cpp model (cached)."""
+    global _whisper_model
+    if _whisper_model is None:
+        from pywhispercpp.model import Model
+        model_path = download_whisper_model(model)
+        print("Loading whisper.cpp...")
+        _whisper_model = Model(str(model_path))
+    return _whisper_model
+
+
+def listen(duration: float = 5.0, model: str = "base") -> str:
+    """Record from mic and transcribe with whisper.cpp."""
+    print(f"Recording {duration}s...")
+    audio = sd.rec(int(duration * 16000), samplerate=16000, channels=1, dtype=np.float32)
+    sd.wait()
+    print("Transcribing...")
+
+    whisper = _get_whisper(model)
+    segments = whisper.transcribe(audio.flatten())
+    text = " ".join(seg.text for seg in segments)
+    return text.strip()
+
+
+# --- Piper TTS ---
+
+_piper_voice = None
+PIPER_VOICE = "en_US-lessac-medium"  # Natural American English voice
+
+
+def download_piper_voice(voice: str = PIPER_VOICE):
+    """Download Piper voice model if not present."""
+    voice_dir = MODEL_DIR / "piper"
+    voice_dir.mkdir(parents=True, exist_ok=True)
+
+    onnx_path = voice_dir / f"{voice}.onnx"
+    json_path = voice_dir / f"{voice}.onnx.json"
+
+    if not onnx_path.exists():
+        print(f"Downloading Piper voice '{voice}'...")
+        base_url = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium"
+
+        import urllib.request
+        urllib.request.urlretrieve(f"{base_url}/en_US-lessac-medium.onnx", onnx_path)
+        urllib.request.urlretrieve(f"{base_url}/en_US-lessac-medium.onnx.json", json_path)
+        print("Voice downloaded.")
+
+    return onnx_path
+
+
+def _get_piper():
+    """Load Piper voice (cached)."""
+    global _piper_voice
+    if _piper_voice is None:
+        from piper import PiperVoice
+        model_path = download_piper_voice()
+        print("Loading Piper TTS...")
+        _piper_voice = PiperVoice.load(str(model_path))
+    return _piper_voice
+
+
+def speak(text: str):
+    """Speak using Piper TTS."""
+    voice = _get_piper()
+
+    # Generate audio chunks and combine
+    audio_arrays = []
+    for chunk in voice.synthesize(text):
+        audio_arrays.append(chunk.audio_float_array)
+
+    # Combine and play
+    audio = np.concatenate(audio_arrays) if audio_arrays else np.array([])
+    sd.play(audio, samplerate=voice.config.sample_rate)
+    sd.wait()
+
+
+def speak_to_file(text: str, path: Path):
+    """Save speech to WAV file."""
+    voice = _get_piper()
+
+    audio_arrays = []
+    for chunk in voice.synthesize(text):
+        audio_arrays.append(chunk.audio_float_array)
+
+    audio = np.concatenate(audio_arrays) if audio_arrays else np.array([])
+    audio_int16 = (audio * 32767).astype(np.int16)
+
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(voice.config.sample_rate)
+        wav.writeframes(audio_int16.tobytes())
+
+
+# --- Main ---
+
+def download_models():
+    """Pre-download all models."""
+    print("Downloading models...")
+    download_whisper_model()
+    download_piper_voice()
+    print("Done!")
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return
+
+    cmd = sys.argv[1]
+
+    if cmd == "tts":
+        text = " ".join(sys.argv[2:]) or "Hello, I am ready to assist you."
+        speak(text)
+
+    elif cmd == "record":
+        duration = float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
+        text = listen(duration)
+        print(f"You said: {text}")
+
+    elif cmd == "loop":
+        print("Interactive loop. Ctrl+C to exit.\n")
+        # Pre-load models
+        _get_whisper()
+        _get_piper()
+        print("Ready!\n")
+
+        while True:
+            try:
+                text = listen()
+                if text:
+                    print(f"You: {text}")
+                    speak(f"You said: {text}")
+            except KeyboardInterrupt:
+                print("\nBye!")
+                break
+
+    elif cmd == "voices":
+        print("Available Piper voices: https://rhasspy.github.io/piper-samples/")
+        print(f"Current: {PIPER_VOICE}")
+
+    elif cmd == "download":
+        download_models()
+
+    else:
+        print(f"Unknown command: {cmd}")
+
+
+if __name__ == "__main__":
+    main()

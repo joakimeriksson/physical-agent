@@ -1,0 +1,19 @@
+[project]
+name = "lab5_mcp"
+version = "0.1.0"
+description = "MCP server + Pydantic AI agent"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[dependencies]
+python = "3.12.*"
+
+[pypi-dependencies]
+mcp = ">=1.0"
+pydantic-ai = ">=0.1"
+ollama = ">=0.3"
+
+[tasks]
+server = "python server.py"
+agent = "python agent.py"
+demo = "python agent.py"

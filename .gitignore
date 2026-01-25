@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Pixi
+.pixi/
+
+# Node
+node_modules/
+
+# Models (large binary files)
+models/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Extracted files
+pptx_extracted/
+
+# Env files
+.env
+.env.local

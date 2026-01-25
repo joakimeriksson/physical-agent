@@ -1,0 +1,18 @@
+[project]
+name = "lab3-agent"
+version = "0.1.0"
+description = "Lab 3: AI Agent with local LLM (Ollama)"
+authors = ["Joakim Eriksson <joakim.eriksson@ri.se>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[tasks]
+demo = "python main.py chat"
+run = "python main.py run"
+
+[dependencies]
+python = "3.12.*"
+
+[pypi-dependencies]
+pydantic-ai = ">=0.0.30"
+httpx = ">=0.28"
