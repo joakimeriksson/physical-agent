@@ -16,6 +16,7 @@ sounddevice>=0.5
 pydantic-ai>=0.1
 mcp>=1.0
 ollama>=0.3
+a2a-sdk>=0.2.4
 
 # Note: Some packages excluded due to complex system dependencies:
 # - pywhispercpp (needs whisper.cpp compilation)

@@ -6,7 +6,17 @@ py-version = 3.10
 ignored-modules = pywhispercpp,
                   pywhispercpp.model,
                   pywhispercpp.utils,
-                  piper
+                  piper,
+                  a2a,
+                  a2a.server,
+                  a2a.server.apps,
+                  a2a.server.request_handlers,
+                  a2a.server.agent_execution,
+                  a2a.server.events,
+                  a2a.server.tasks,
+                  a2a.client,
+                  a2a.types,
+                  a2a.utils
 
 # Allow C extensions to be introspected
 extension-pkg-allow-list = cv2

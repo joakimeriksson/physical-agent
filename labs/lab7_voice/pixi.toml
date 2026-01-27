@@ -1,0 +1,24 @@
+[project]
+name = "lab7_voice"
+version = "0.1.0"
+description = "Lab 7: Voice Agent Challenge - Combine speech with MCP agent"
+authors = ["Joakim Eriksson <joakim.eriksson@ri.se>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[tasks]
+demo = "python main.py"
+download-models = "python -c \"import sys; sys.path.insert(0, '../lab1_speech'); from main import download_models; download_models()\""
+
+[dependencies]
+python = "3.12.*"
+numpy = ">=1.26"
+portaudio = "*"
+
+[pypi-dependencies]
+sounddevice = ">=0.5"
+pywhispercpp = ">=1.2"
+piper-tts = ">=1.2"
+pydantic-ai = ">=0.1"
+mcp = ">=1.0"
+ollama = ">=0.3"

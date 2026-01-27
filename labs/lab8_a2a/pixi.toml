@@ -1,0 +1,22 @@
+[project]
+name = "lab8_a2a"
+version = "0.1.0"
+description = "Lab 8: A2A Basics - Agent-to-Agent communication"
+authors = ["Joakim Eriksson <joakim.eriksson@ri.se>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[dependencies]
+python = "3.12.*"
+
+[pypi-dependencies]
+pydantic-ai = { version = ">=0.2", extras = ["a2a"] }
+a2a-sdk = ">=0.2.4"
+httpx = ">=0.27"
+uvicorn = ">=0.34"
+
+[tasks]
+agent-b = "python agent_b.py"
+agent-a = "python agent_a.py"
+demo = "python agent_a.py"
+test = "python test_client.py"

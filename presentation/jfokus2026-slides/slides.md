@@ -294,7 +294,9 @@ Everyone works through progressive exercises on their laptops
 | 4 | Business | Vision + Speech + VLM combined |
 | 5 | MCP | MCP server pattern |
 | 6 | IoT | Remote MCP to IKEA DIRIGERA |
-| 6+ | Challenge | Voice-controlled IoT |
+| 7 | Voice Agent | Combine speech + MCP agent |
+| 8 | A2A | Agent-to-Agent communication |
+| 9 | Voice IoT | Voice + A2A for smart home |
 
 ---
 
@@ -471,6 +473,99 @@ result = agent.run_sync("Turn on the living room light")
 - **Challenge:** Add voice control from Lab 1!
 
 </v-clicks>
+
+---
+
+# Lab 7: Voice Agent (Challenge)
+
+### Combine Speech + MCP Agent
+
+```python
+# Combine Lab 1 (speech) with Lab 5 (MCP agent)
+from main import listen, speak  # From Lab 1
+from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+agent = Agent("ollama:qwen3:4b", toolsets=[mcp_server])
+
+async with agent:
+    while True:
+        text = listen()              # Hear
+        result = await agent.run(text)  # Think
+        speak(result.output)         # Speak
+```
+
+<v-click>
+
+```bash
+cd labs/lab7_voice && pixi run demo
+```
+
+</v-click>
+
+---
+
+# Lab 8: A2A Protocol
+
+### Agent-to-Agent Communication
+
+```
+┌─────────────────┐     A2A HTTP      ┌─────────────────┐
+│   Agent A       │ ←───────────────→ │   Agent B       │
+│   (Client)      │                   │   (Server)      │
+└─────────────────┘                   └─────────────────┘
+```
+
+<v-clicks>
+
+- **A2A** = Agent-to-Agent protocol
+- Agents discover each other via **Agent Cards**
+- Exchange messages over HTTP
+- Different from MCP: peer-to-peer vs client-server
+
+</v-clicks>
+
+<v-click>
+
+```bash
+cd labs/lab8_a2a && pixi run agent-b  # Terminal 1
+cd labs/lab8_a2a && pixi run agent-a  # Terminal 2
+```
+
+</v-click>
+
+---
+
+# Lab 9: Voice + IoT via A2A (Challenge)
+
+### The Ultimate Integration
+
+```
+    [Microphone]
+         │
+         ▼
+    [Whisper STT]
+         │
+         ▼
+    [A2A Client] ──────► [IoT Agent] ──► Smart Home
+         │
+         ▼
+    [Piper TTS]
+         │
+         ▼
+    [Speaker]
+```
+
+<v-click>
+
+Control your smart home with voice via agent-to-agent communication!
+
+```bash
+cd labs/lab9_voice_iot && pixi run iot-agent  # Terminal 1
+cd labs/lab9_voice_iot && pixi run demo       # Terminal 2
+```
+
+</v-click>
 
 ---
 layout: center

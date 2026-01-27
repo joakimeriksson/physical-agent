@@ -34,3 +34,4 @@ pptx_extracted/
 # Env files
 .env
 .env.local
+experimental/
