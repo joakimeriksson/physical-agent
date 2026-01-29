@@ -76,11 +76,22 @@ def list_audio_devices():
         if dev["max_output_channels"] > 0:
             kind.append("OUT")
         marker = " <-- default" if i == sd.default.device[0] or i == sd.default.device[1] else ""
-        print(f"  [{i}] {dev['name']} ({'/'.join(kind)}){marker}")
+        rate = int(dev.get("default_samplerate", 0))
+        print(f"  [{i}] {dev['name']} ({'/'.join(kind)}) {rate}Hz{marker}")
     print("-" * 60)
     print(f"Default input:  {sd.default.device[0]}")
     print(f"Default output: {sd.default.device[1]}")
     print("\nTo use a specific device: export SD_DEVICE=<id>")
+
+
+def _resample(audio: np.ndarray, orig_rate: int, target_rate: int) -> np.ndarray:
+    """Simple linear resampling."""
+    if orig_rate == target_rate:
+        return audio
+    duration = len(audio) / orig_rate
+    target_len = int(duration * target_rate)
+    indices = np.linspace(0, len(audio) - 1, target_len)
+    return np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
 
 
 def listen(duration: float = 5.0, model: str = "base") -> str:
@@ -91,23 +102,51 @@ def listen(duration: float = 5.0, model: str = "base") -> str:
         device = int(device)
         print(f"Using audio device: {device}")
 
-    print(f"Recording {duration}s...")
+    # Whisper needs 16kHz, but some devices don't support it
+    target_rate = 16000
+
+    # Get device's native sample rate
+    dev_info = sd.query_devices(device, "input")
+    native_rate = int(dev_info["default_samplerate"])
+
+    # Try 16kHz first, fall back to native rate
     try:
+        print(f"Recording {duration}s at {target_rate}Hz...")
         audio = sd.rec(
-            int(duration * 16000),
-            samplerate=16000,
+            int(duration * target_rate),
+            samplerate=target_rate,
             channels=1,
             dtype=np.float32,
             device=device,
         )
         sd.wait()
+        sample_rate = target_rate
     except Exception as e:
-        print(f"\nAudio recording failed: {e}")
-        print("\nTroubleshooting:")
-        print("  1. Run: pixi run devices")
-        print("  2. Set device: export SD_DEVICE=<device_id>")
-        print("  3. Linux: sudo apt install portaudio19-dev libasound2-dev")
-        raise
+        if "sample rate" in str(e).lower() or "invalid" in str(e).lower():
+            print(f"Device doesn't support {target_rate}Hz, using {native_rate}Hz...")
+            audio = sd.rec(
+                int(duration * native_rate),
+                samplerate=native_rate,
+                channels=1,
+                dtype=np.float32,
+                device=device,
+            )
+            sd.wait()
+            sample_rate = native_rate
+        else:
+            print(f"\nAudio recording failed: {e}")
+            print("\nTroubleshooting:")
+            print("  1. Run: pixi run devices")
+            print("  2. Set device: export SD_DEVICE=<device_id>")
+            print("  3. Linux: sudo apt install portaudio19-dev libasound2-dev")
+            raise
+
+    # Resample to 16kHz if needed (Whisper requirement)
+    audio = audio.flatten()
+    if sample_rate != target_rate:
+        print(f"Resampling {sample_rate}Hz -> {target_rate}Hz...")
+        audio = _resample(audio, sample_rate, target_rate)
+
     print("Transcribing...")
 
     whisper = _get_whisper(model)
