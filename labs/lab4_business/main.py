@@ -16,6 +16,7 @@ Usage:
 
 import base64
 import json
+import os
 import re
 import sys
 import time
@@ -199,6 +200,16 @@ def clean_for_speech(text: str) -> str:
     return text.strip()
 
 
+def _resample(audio: np.ndarray, orig_rate: int, target_rate: int) -> np.ndarray:
+    """Simple linear resampling."""
+    if orig_rate == target_rate:
+        return audio
+    duration = len(audio) / orig_rate
+    target_len = int(duration * target_rate)
+    indices = np.linspace(0, len(audio) - 1, target_len)
+    return np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
+
+
 def speak(text: str):
     """Speak text using Piper TTS."""
     text = clean_for_speech(text)
@@ -209,8 +220,33 @@ def speak(text: str):
         audio_arrays.append(chunk.audio_float_array)
 
     audio = np.concatenate(audio_arrays) if audio_arrays else np.array([])
-    sd.play(audio, samplerate=voice.config.sample_rate)
-    sd.wait()
+    source_rate = voice.config.sample_rate
+
+    # Get output device's native sample rate
+    device = os.environ.get("SD_DEVICE")
+    if device:
+        device = int(device)
+    dev_info = sd.query_devices(device, "output")
+    native_rate = int(dev_info["default_samplerate"])
+
+    # Resample if device doesn't support source rate
+    if native_rate != source_rate:
+        audio = _resample(audio, source_rate, native_rate)
+        play_rate = native_rate
+    else:
+        play_rate = source_rate
+
+    try:
+        sd.play(audio, samplerate=play_rate, device=device)
+        sd.wait()
+    except Exception as e:
+        # Fallback: try device's native rate with resampling
+        if "sample rate" in str(e).lower():
+            audio = _resample(audio, source_rate, native_rate)
+            sd.play(audio, samplerate=native_rate, device=device)
+            sd.wait()
+        else:
+            raise
 
 
 # --- Agentic Loop ---

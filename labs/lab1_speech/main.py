@@ -207,8 +207,33 @@ def speak(text: str):
 
     # Combine and play
     audio = np.concatenate(audio_arrays) if audio_arrays else np.array([])
-    sd.play(audio, samplerate=voice.config.sample_rate)
-    sd.wait()
+    source_rate = voice.config.sample_rate
+
+    # Get output device's native sample rate
+    device = os.environ.get("SD_DEVICE")
+    if device:
+        device = int(device)
+    dev_info = sd.query_devices(device, "output")
+    native_rate = int(dev_info["default_samplerate"])
+
+    # Resample if device doesn't support source rate
+    if native_rate != source_rate:
+        audio = _resample(audio, source_rate, native_rate)
+        play_rate = native_rate
+    else:
+        play_rate = source_rate
+
+    try:
+        sd.play(audio, samplerate=play_rate, device=device)
+        sd.wait()
+    except Exception as e:
+        # Fallback: try device's native rate with resampling
+        if "sample rate" in str(e).lower():
+            audio = _resample(audio, source_rate, native_rate)
+            sd.play(audio, samplerate=native_rate, device=device)
+            sd.wait()
+        else:
+            raise
 
 
 def speak_to_file(text: str, path: Path):
