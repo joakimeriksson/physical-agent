@@ -17,13 +17,22 @@ Usage:
 import base64
 import json
 import re
+import sys
 import time
 import urllib.request
 from pathlib import Path
 
 import cv2
 import numpy as np
-import sounddevice as sd
+
+# Try to import sounddevice with helpful error message
+try:
+    import sounddevice as sd
+except OSError as e:
+    print(f"Error loading audio library: {e}")
+    print("\nLinux fix: sudo apt install portaudio19-dev libasound2-dev")
+    print("Then: pixi install --force")
+    sys.exit(1)
 
 # --- Config ---
 

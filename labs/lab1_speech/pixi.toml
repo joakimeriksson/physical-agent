@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "lab1-speech"
 version = "0.1.0"
 description = "Lab 1: Speech-to-Text and Text-to-Speech"
@@ -11,12 +11,17 @@ demo = "python main.py loop"
 tts = "python main.py tts"
 record = "python main.py record"
 voices = "python main.py voices"
+devices = "python main.py devices"
 download-models = "python main.py download"
 
 [dependencies]
 python = "3.12.*"
 numpy = ">=1.26"
 portaudio = "*"
+
+[target.linux-64.dependencies]
+alsa-lib = "*"
+pulseaudio-client = "*"
 
 [pypi-dependencies]
 sounddevice = ">=0.5"

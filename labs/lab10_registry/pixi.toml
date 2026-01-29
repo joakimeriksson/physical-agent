@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "lab10_registry"
 version = "0.1.0"
 description = "Lab 10: Agent Registry - Discover and share agents"

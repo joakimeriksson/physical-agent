@@ -8,15 +8,31 @@ Usage:
     pixi run record       # Record and transcribe
     pixi run demo         # Interactive loop
     pixi run voices       # List available voices
+    pixi run devices      # List audio devices (troubleshooting)
     pixi run download-models  # Pre-download models
+
+Linux troubleshooting:
+    If you get PortAudio errors, try:
+    1. Install system deps: sudo apt install portaudio19-dev libasound2-dev
+    2. Check devices: pixi run devices
+    3. Set device: export SD_DEVICE=<device_id>
 """
 
+import os
 import sys
 import wave
 from pathlib import Path
 
 import numpy as np
-import sounddevice as sd
+
+# Try to import sounddevice with helpful error message
+try:
+    import sounddevice as sd
+except OSError as e:
+    print(f"Error loading audio library: {e}")
+    print("\nLinux fix: sudo apt install portaudio19-dev libasound2-dev")
+    print("Then: pixi install --force")
+    sys.exit(1)
 
 # Shared models directory (project root)
 MODEL_DIR = Path(__file__).parent.parent.parent / "models"
@@ -48,11 +64,50 @@ def _get_whisper(model: str = "base"):
     return _whisper_model
 
 
+def list_audio_devices():
+    """List available audio devices for troubleshooting."""
+    print("Audio Devices:")
+    print("-" * 60)
+    devices = sd.query_devices()
+    for i, dev in enumerate(devices):
+        kind = []
+        if dev["max_input_channels"] > 0:
+            kind.append("IN")
+        if dev["max_output_channels"] > 0:
+            kind.append("OUT")
+        marker = " <-- default" if i == sd.default.device[0] or i == sd.default.device[1] else ""
+        print(f"  [{i}] {dev['name']} ({'/'.join(kind)}){marker}")
+    print("-" * 60)
+    print(f"Default input:  {sd.default.device[0]}")
+    print(f"Default output: {sd.default.device[1]}")
+    print("\nTo use a specific device: export SD_DEVICE=<id>")
+
+
 def listen(duration: float = 5.0, model: str = "base") -> str:
     """Record from mic and transcribe with whisper.cpp."""
+    # Allow device override via environment
+    device = os.environ.get("SD_DEVICE")
+    if device:
+        device = int(device)
+        print(f"Using audio device: {device}")
+
     print(f"Recording {duration}s...")
-    audio = sd.rec(int(duration * 16000), samplerate=16000, channels=1, dtype=np.float32)
-    sd.wait()
+    try:
+        audio = sd.rec(
+            int(duration * 16000),
+            samplerate=16000,
+            channels=1,
+            dtype=np.float32,
+            device=device,
+        )
+        sd.wait()
+    except Exception as e:
+        print(f"\nAudio recording failed: {e}")
+        print("\nTroubleshooting:")
+        print("  1. Run: pixi run devices")
+        print("  2. Set device: export SD_DEVICE=<device_id>")
+        print("  3. Linux: sudo apt install portaudio19-dev libasound2-dev")
+        raise
     print("Transcribing...")
 
     whisper = _get_whisper(model)
@@ -183,6 +238,9 @@ def main():
     elif cmd == "voices":
         print("Available Piper voices: https://rhasspy.github.io/piper-samples/")
         print(f"Current: {PIPER_VOICE}")
+
+    elif cmd == "devices":
+        list_audio_devices()
 
     elif cmd == "download":
         download_models()

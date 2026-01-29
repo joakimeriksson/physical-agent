@@ -4,6 +4,8 @@
 
 Jfokus 2026 - Hands-on Lab (3.5 hours)
 
+> **Note:** This tutorial is under active development and being improved continuously. If you encounter issues or have suggestions, please open an issue or pull request.
+
 AI is breaking out of the chat window and into the real world. In this session, you'll build AI agents that don't just talk—they see, listen, and physically act. We'll connect LLMs to a robotic arm (the "Candytron 4000"), cameras, microphones, and smart home devices, creating an interactive system where your voice commands and AI decisions translate into real-world actions. You'll explore multimodal AI, edge computing, and agent-to-agent communication—all running locally, no cloud required.
 
 And yes, the robot will be handing out candy!

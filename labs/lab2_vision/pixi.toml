@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "lab2-vision"
 version = "0.1.0"
 description = "Lab 2: Vision with YOLO object detection"

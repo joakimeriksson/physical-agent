@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "lab8_a2a"
 version = "0.1.0"
 description = "Lab 8: A2A Basics - Agent-to-Agent communication"

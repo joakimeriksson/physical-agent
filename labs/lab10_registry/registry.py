@@ -148,7 +148,7 @@ async def send_message(req: MessageRequest):
             message_history.pop()
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as http_client:
+        async with httpx.AsyncClient(timeout=120.0) as http_client:  # 2 min timeout for slow models
             # Get agent card and create client
             resolver = A2ACardResolver(httpx_client=http_client, base_url=agent["url"])
             agent_card = await resolver.get_agent_card()
@@ -170,10 +170,10 @@ async def send_message(req: MessageRequest):
             # Extract result
             result = response.root.result if hasattr(response, "root") else response.result
 
-            # If it's a Task, poll for completion
+            # If it's a Task, poll for completion (up to 90 seconds for slow models)
             if hasattr(result, "id") and hasattr(result, "status"):
                 task_id = result.id
-                for _ in range(30):
+                for _ in range(90):
                     task_request = GetTaskRequest(id=str(uuid4()), params={"id": task_id})
                     task_response = await client.get_task(task_request)
                     task = task_response.root.result if hasattr(task_response, "root") else task_response.result
@@ -260,6 +260,7 @@ def generate_history_rows() -> str:
 async def web_ui():
     """Web UI with card popup and messaging."""
     import json
+    import html
 
     agent_rows = ""
     for a in sorted(agents.values(), key=lambda x: x["last_seen"], reverse=True):
@@ -267,10 +268,11 @@ async def web_ui():
         author = a.get("author", "-") or "-"
         version = a.get("version", "")
         version_badge = f'<span class="version">v{version}</span>' if version else ""
-        card_json = json.dumps(a.get("card", {}), indent=2)
+        # HTML-escape the JSON to prevent breaking the attribute
+        card_json_escaped = html.escape(json.dumps(a.get("card", {})))
 
         agent_rows += f"""
-        <tr data-url="{a['url']}" data-card='{json.dumps(a.get("card", {}))}'>
+        <tr data-url="{a['url']}" data-card="{card_json_escaped}">
             <td class="name">{a['name']} {version_badge}</td>
             <td class="author">{author}</td>
             <td class="desc">{a['description'][:40]}...</td>

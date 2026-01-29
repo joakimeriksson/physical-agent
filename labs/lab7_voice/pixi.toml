@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "lab7_voice"
 version = "0.1.0"
 description = "Lab 7: Voice Agent Challenge - Combine speech with MCP agent"
