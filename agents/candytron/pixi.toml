@@ -1,0 +1,29 @@
+[workspace]
+name = "candytron-agent"
+version = "1.0.0"
+description = "Candytron 4000 - Candy-dispensing robot A2A agent"
+authors = ["Joakim Eriksson <joakim.eriksson@ri.se>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "win-64"]
+
+[tasks]
+agent = "python main.py"
+
+[dependencies]
+python = "3.12.*"
+
+[pypi-dependencies]
+pydantic-ai = { version = ">=0.2", extras = ["a2a"] }
+a2a-sdk = ">=0.2.4"
+uvicorn = ">=0.34"
+httpx = ">=0.27"
+
+# === REAL CANDYTRON DEPENDENCIES ===
+# Uncomment these for real hardware integration:
+#
+# pyniryo = ">=1.1"           # Niryo Ned 2 robot arm
+# ultralytics = ">=8.0"       # YOLO 11 for candy detection
+# opencv-python = ">=4.10"    # Camera capture
+# piper-tts = ">=1.2"         # Text-to-speech
+# pywhispercpp = ">=1.2"      # Speech-to-text
+# sounddevice = ">=0.5"       # Audio playback

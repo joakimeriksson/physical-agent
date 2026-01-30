@@ -36,7 +36,50 @@ pixi run agent
 | `IOT_AGENT_URL` | Public URL for this agent | `http://localhost:9998` |
 | `PYDANTIC_AI_MODEL` | LLM model to use | `ollama:qwen3:4b` |
 
+## Candytron 4000 (`candytron/`)
+
+Candy-dispensing robot with vision, speech, and robot arm control.
+
+**Features:**
+- Pick candy by color using robot arm (Niryo Ned 2)
+- Detect candy on table using camera + YOLO
+- Text-to-speech for friendly interaction
+- Gesture controls (wave, dance)
+- Virtual mode with canned responses for testing
+
+**Usage:**
+
+```bash
+cd agents/candytron
+
+# Virtual mode (no hardware)
+pixi run agent
+
+# With registry
+REGISTRY_URL=http://localhost:8000 pixi run agent
+```
+
+**Environment Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REGISTRY_URL` | Agent registry URL | `http://localhost:8000` |
+| `CANDYTRON_PORT` | Port for A2A server | `9999` |
+| `CANDYTRON_URL` | Public URL for this agent | `http://localhost:9999` |
+| `PYDANTIC_AI_MODEL` | LLM model to use | `ollama:gemma3:4b` |
+
+**Real Hardware Integration:**
+
+See `robot.py` for integration stubs. Uncomment and configure:
+- `pyniryo` for Niryo Ned 2 robot arm
+- `ultralytics` + `cv2` for camera and YOLO detection
+- `piper-tts` for speech output
+- `pywhispercpp` for voice commands
+
+**Canned Image:**
+
+Place a `candy_table.jpg` in the candytron directory to use as the canned camera response.
+
 ## Future Agents
 
-- **Candytron Agent** - Robot arm control
 - **Reachy Agent** - Robot head control
