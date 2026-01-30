@@ -33,22 +33,45 @@ And yes, the robot will be handing out candy!
    ```powershell
    iwr -useb https://pixi.sh/install.ps1 | iex
    ```
+   Windows (winget):
+   ```powershell
+   winget install prefix-dev.pixi
+   ```
 
 2. **Ollama** (local LLM runtime)
 
-   Download for your platform: https://ollama.com/download
+   macOS/Linux: Download from https://ollama.com/download
+
+   Windows (winget):
+   ```powershell
+   winget install Ollama.Ollama
+   ```
 
    After installing, pull a model:
    ```bash
    ollama pull qwen3:4b
    ```
 
-3. **Git** - clone this repository:
+3. **Git** - clone this repository
+
+   Windows (winget):
+   ```powershell
+   winget install Git.Git
+   ```
+   macOS: `brew install git` or Xcode Command Line Tools
+
+   Then clone:
    ```bash
    git clone https://github.com/joakimeriksson/physical-agent.git
    ```
 
-4. **A code editor** (VS Code recommended)
+4. **VS Code** (recommended editor)
+
+   Windows (winget):
+   ```powershell
+   winget install Microsoft.VisualStudioCode
+   ```
+   Or download from: https://code.visualstudio.com/
 
 ### Optional but Recommended
 
