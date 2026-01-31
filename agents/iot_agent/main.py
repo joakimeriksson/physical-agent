@@ -40,7 +40,7 @@ if DEBUG:
 
 # Configuration
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:qwen3:4b")
+MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:qwen2.5:7b")
 REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:8000")
 AGENT_PORT = int(os.environ.get("IOT_AGENT_PORT", "9998"))
 AGENT_URL = os.environ.get("IOT_AGENT_URL", f"http://localhost:{AGENT_PORT}")

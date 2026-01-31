@@ -49,23 +49,22 @@ from a2a.types import AgentSkill, AgentProvider
 # --- Configuration ---
 
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:gemma3:4b")
+MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:qwen2.5:7b")
 REGISTRY_URL = os.environ.get("REGISTRY_URL", "http://localhost:8000")
 AGENT_PORT = int(os.environ.get("CANDYTRON_PORT", "9999"))
 AGENT_URL = os.environ.get("CANDYTRON_URL", f"http://localhost:{AGENT_PORT}")
 
-# Path to canned camera image (placed in this directory)
-CANNED_IMAGE_PATH = Path(__file__).parent / "candy_table.jpg"
+# Path to canned camera image
+CANNED_IMAGE_PATH = Path(__file__).parent / "data" / "candy.png"
 
 
 # --- Virtual/Canned Responses ---
 
 CANNED_CANDY = [
-    {"color": "red", "type": "gummy bear", "x": 120, "y": 80},
-    {"color": "blue", "type": "lollipop", "x": 250, "y": 100},
-    {"color": "green", "type": "gummy bear", "x": 180, "y": 150},
-    {"color": "yellow", "type": "jelly bean", "x": 300, "y": 90},
-    {"color": "orange", "type": "candy corn", "x": 80, "y": 120},
+    {"name": "Marianne", "type": "mint", "x": 50, "y": 30, "confidence": 0.77},
+    {"name": "FazerMint", "type": "chocolate mint", "x": 350, "y": 30, "confidence": 0.54},
+    {"name": "Dumle", "type": "toffee", "x": 50, "y": 280, "confidence": 0.77},
+    {"name": "Snickers", "type": "chocolate bar", "x": 350, "y": 280, "confidence": 0.78},
 ]
 
 
@@ -110,36 +109,32 @@ def pick_candy(description: str) -> str:
     # from robot import pick_candy_real
     # return pick_candy_real(description)
 
-    # Virtual/canned response - match by color or type
+    # Virtual/canned response - match by name or type
     desc_lower = description.lower()
     matching = [c for c in CANNED_CANDY
-                if c["color"] in desc_lower or c["type"] in desc_lower]
+                if c["name"].lower() in desc_lower or c["type"] in desc_lower]
     if matching:
         candy = matching[0]
-        return f"🍬 Picked up a {candy['color']} {candy['type']}! Here you go!"
+        return f"🍬 Picked up a {candy['name']} ({candy['type']})! Here you go!"
     else:
         # Just pick a random one if no match
         candy = CANNED_CANDY[0]
-        return f"🍬 I picked a {candy['color']} {candy['type']} for you!"
+        return f"🍬 I picked a {candy['name']} ({candy['type']}) for you!"
 
 
 @agent.tool_plain
-def see_candy() -> dict:
+def see_candy() -> str:
     """Look at the table and detect what candy is available.
 
-    Returns a list of detected candy with colors and positions.
+    Returns a list of available candy names.
     """
     # === REAL CANDYTRON INTEGRATION ===
     # from robot import detect_candy_real
     # return detect_candy_real()
 
-    # Virtual/canned response
-    return {
-        "candy_count": len(CANNED_CANDY),
-        "candy": CANNED_CANDY,
-        "image_base64": get_canned_image_base64(),
-        "message": "I see candy on the table!",
-    }
+    # Virtual/canned response - text only
+    candy_list = [f"- {c['name']} ({c['type']})" for c in CANNED_CANDY]
+    return f"I see {len(CANNED_CANDY)} candies on the table:\n" + "\n".join(candy_list)
 
 
 @agent.tool_plain
