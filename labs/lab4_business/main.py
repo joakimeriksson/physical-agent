@@ -265,7 +265,7 @@ def show_results(results: dict):
     """Display and speak all results."""
     print("\n" + "-" * 40)
     for aspect, (score, feedback) in results.items():
-        print(f"📋 {aspect.upper()}: {score}/10")
+        print(f"{aspect.upper()}: {score}/10")
         print(f"   {feedback}\n")
 
     # Speak summary
@@ -292,7 +292,7 @@ def calculate_summary(results: dict) -> tuple[float, str]:
 
 def run_coach():
     """Run the multi-turn business readiness coach."""
-    print("\n🎯 Business Readiness Coach")
+    print("\nBusiness Readiness Coach")
     print("=" * 40)
     print("I'll check your: clothing, grooming, background, and pose.")
     print("Let's make sure you're ready for that meeting!\n")
@@ -318,12 +318,12 @@ def run_coach():
         average, verdict = calculate_summary(results)
 
         print("=" * 40)
-        print("📊 SUMMARY")
+        print("SUMMARY")
         print("=" * 40)
         for aspect, (score, _) in results.items():
             print(f"  {aspect.capitalize():12} {score}/10")
         print(f"\n  {'AVERAGE':12} {average:.1f}/10")
-        print(f"\n🎯 {verdict}")
+        print(f"\n{verdict}")
 
         speak(f"Your average score is {average:.1f} out of 10. {verdict}")
 
@@ -334,7 +334,7 @@ def run_coach():
             areas = ", ".join(low_scores)
             speak(f"I noticed some areas could be improved: {areas}. "
                   "Would you like to try again?")
-            print("\n🔄 Try again? (y/n): ", end="")
+            print("\nTry again? (y/n): ", end="")
             try:
                 response = input().strip().lower()
                 if response == 'y':

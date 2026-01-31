@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Lab 2: Vision with YOLO object detection"
 authors = ["Joakim Eriksson <joakim.eriksson@ri.se>"]
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64", "win-64"]
+platforms = ["osx-arm64", "linux-64", "linux-aarch64", "win-64"]
 
 [tasks]
 demo = "python main.py webcam"
@@ -14,7 +14,9 @@ list-classes = "python main.py classes"
 
 [dependencies]
 python = "3.12.*"
-numpy = ">=1.26"
+numpy = ">=1.26,<2.0"
+pytorch = ">=2.0"
+torchvision = ">=0.17"
 
 [pypi-dependencies]
 ultralytics = ">=8.3"
