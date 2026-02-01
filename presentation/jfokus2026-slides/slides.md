@@ -1,13 +1,13 @@
 ---
 theme: default
-title: AI in the Physical World
+title: AI in Control of Things
 info: |
-  ## AI in the Physical World
-  Hands-on lab at Jfokus 2026
+  ## AI in Control of Things
+  Building Physical AI Agents with IoT, Robots, and LLMs
 
-  LLMs, Multimodal AI, and Edge Intelligence controlling real devices
+  Hands-on lab at Jfokus 2026
 author: Joakim Eriksson
-keywords: AI, LLM, Robotics, IoT, Edge AI
+keywords: AI, LLM, Robotics, IoT, Edge AI, A2A, MCP
 highlighter: shiki
 drawings:
   persist: false
@@ -15,13 +15,13 @@ transition: slide-left
 mdc: true
 ---
 
-# AI in the Physical World
+# AI in Control of Things
 
-## LLMs that See, Listen, and Act
+## Building Physical AI Agents with IoT, Robots, and LLMs
 
 <div class="pt-12">
   <span class="px-2 py-1 rounded">
-    Jfokus 2026 - Hands-on Lab
+    Jfokus 2026 - Hands-on Lab (3.5 hours)
   </span>
 </div>
 
@@ -38,6 +38,7 @@ mdc: true
 - 🤖 Connect LLMs to **real physical devices**
 - 👁️ Add **computer vision** so AI can see
 - 🎤 Add **speech** so AI can hear and talk
+- 🔗 Make agents **talk to each other** (A2A)
 - 🦾 Make AI **take action** in the real world
 - 🍬 Get candy from a robot!
 
@@ -173,18 +174,68 @@ Your AI can control the environment!
 layout: center
 ---
 
-# The Architecture
+# Key Technologies
 
-How do we connect AI to physical devices?
+The building blocks for physical AI
+
+---
+
+# Two Protocols for AI Integration
+
+<div class="grid grid-cols-2 gap-8 pt-4">
+
+<div>
+
+### MCP (Model Context Protocol)
+
+**Client-Server pattern**
+
+```
+┌─────────┐      ┌─────────┐
+│   LLM   │ ───► │   MCP   │
+│ (Client)│      │ (Server)│
+└─────────┘      └─────────┘
+```
+
+- LLM discovers and uses tools
+- Structured tool definitions
+- Resources and prompts
+- **modelcontextprotocol.io**
+
+</div>
+
+<div>
+
+### A2A (Agent-to-Agent)
+
+**Peer-to-peer pattern**
+
+```
+┌─────────┐      ┌─────────┐
+│ Agent A │ ◄──► │ Agent B │
+│         │      │         │
+└─────────┘      └─────────┘
+```
+
+- Agents discover each other
+- Exchange messages (tasks)
+- Agent Cards for identity
+- **google.github.io/A2A**
+
+</div>
+
+</div>
 
 ---
 
 # The Brain: LLM with Tools
 
 ```python
-from openai import OpenAI
+from pydantic_ai import Agent
 
-@tool
+agent = Agent("ollama:qwen3:4b")
+
+@agent.tool
 def pick_candy(color: str) -> str:
     """Pick up a candy of the specified color from the table"""
     position = vision.find_candy(color)
@@ -194,10 +245,7 @@ def pick_candy(color: str) -> str:
     return f"Picked up {color} candy"
 
 # LLM decides WHEN and HOW to use tools
-response = llm.chat(
-    messages=[{"role": "user", "content": "Can I have a red candy?"}],
-    tools=[pick_candy, set_light, speak]
-)
+result = agent.run_sync("Can I have a red candy?")
 ```
 
 ---
@@ -251,32 +299,61 @@ The complete loop:
 layout: center
 ---
 
-# MCP: Model Context Protocol
+# Prerequisites
 
-A standard way to give LLMs access to tools
+What you need installed
 
 ---
 
-# MCP Tools
+# Setup Checklist
 
-```python
-@mcp.tool()
-async def control_light(
-    device_id: str,
-    brightness: int,
-    color: str
-) -> str:
-    """Control an IKEA smart light"""
-    await dirigera.set_light(device_id, brightness, color)
-    return f"Light {device_id} set to {color} at {brightness}%"
+<v-clicks>
 
-@mcp.tool()
-async def get_room_temperature() -> float:
-    """Read temperature from IKEA sensor"""
-    return await dirigera.read_sensor("temperature")
+### 1. Pixi (Python package manager)
+```bash
+# macOS/Linux
+curl -fsSL https://pixi.sh/install.sh | bash
+
+# Windows PowerShell
+iwr -useb https://pixi.sh/install.ps1 | iex
 ```
 
-LLMs can discover and use these tools automatically
+### 2. System Dependencies
+```bash
+# macOS
+brew install portaudio
+
+# Linux (Ubuntu/Debian)
+sudo apt install portaudio19-dev espeak
+```
+
+</v-clicks>
+
+---
+
+# Setup Checklist (continued)
+
+<v-clicks>
+
+### 3. Ollama (local LLM)
+```bash
+# Download from https://ollama.com/download, then:
+ollama pull qwen2.5:7b   # Recommended for agent labs
+ollama pull gemma3:4b    # For vision lab
+```
+
+### 4. Clone the repo
+```bash
+git clone https://github.com/joakimeriksson/physical-agent.git
+```
+
+</v-clicks>
+
+<v-click>
+
+**No cloud API keys needed - everything runs locally!**
+
+</v-click>
 
 ---
 layout: center
@@ -286,6 +363,10 @@ layout: center
 
 Everyone works through progressive exercises on their laptops
 
+---
+
+# Lab Overview
+
 | Lab | Topic | What You'll Learn |
 |-----|-------|-------------------|
 | 1 | Speech | Whisper STT + Piper TTS |
@@ -294,9 +375,10 @@ Everyone works through progressive exercises on their laptops
 | 4 | Business | Vision + Speech + VLM combined |
 | 5 | MCP | MCP server pattern |
 | 6 | IoT | Remote MCP to IKEA DIRIGERA |
-| 7 | Voice Agent | Combine speech + MCP agent |
-| 8 | A2A | Agent-to-Agent communication |
+| 7 | Voice | Voice pipeline integration |
+| 8 | A2A | Agent-to-agent communication |
 | 9 | Voice IoT | Voice + A2A for smart home |
+| 10 | Registry | A2A agent discovery |
 
 ---
 
@@ -305,10 +387,10 @@ Everyone works through progressive exercises on their laptops
 ### Your AI Learns to Hear and Speak
 
 ```python
-# Speech-to-Text with Whisper (local)
-from faster_whisper import WhisperModel
-model = WhisperModel("small")
-segments, _ = model.transcribe("audio.wav")
+# Speech-to-Text with Whisper.cpp (local)
+from pywhispercpp.model import Model
+model = Model("base")
+segments = model.transcribe("audio.wav")
 text = " ".join([s.text for s in segments])
 
 # Text-to-Speech with Piper (neural voices)
@@ -476,23 +558,25 @@ result = agent.run_sync("Turn on the living room light")
 
 ---
 
-# Lab 7: Voice Agent (Challenge)
+# Lab 7: Voice Agent
 
-### Combine Speech + MCP Agent
+### Combine Speech + Agent
 
 ```python
-# Combine Lab 1 (speech) with Lab 5 (MCP agent)
 from main import listen, speak  # From Lab 1
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerStdio
 
-agent = Agent("ollama:qwen3:4b", toolsets=[mcp_server])
+agent = Agent("ollama:qwen3:4b")
 
-async with agent:
-    while True:
-        text = listen()              # Hear
-        result = await agent.run(text)  # Think
-        speak(result.output)         # Speak
+@agent.tool
+def get_time() -> str:
+    from datetime import datetime
+    return datetime.now().strftime("%H:%M")
+
+while True:
+    text = listen()              # Hear
+    result = agent.run_sync(text)  # Think
+    speak(result.output)         # Speak
 ```
 
 <v-click>
@@ -518,10 +602,10 @@ cd labs/lab7_voice && pixi run demo
 
 <v-clicks>
 
-- **A2A** = Agent-to-Agent protocol
+- **A2A** = Agent-to-Agent protocol by Google
 - Agents discover each other via **Agent Cards**
-- Exchange messages over HTTP
-- Different from MCP: peer-to-peer vs client-server
+- Exchange messages over HTTP/JSON-RPC
+- pydantic-ai has built-in A2A support: `agent.to_a2a()`
 
 </v-clicks>
 
@@ -536,7 +620,7 @@ cd labs/lab8_a2a && pixi run agent-a  # Terminal 2
 
 ---
 
-# Lab 9: Voice + IoT via A2A (Challenge)
+# Lab 9: Voice + IoT via A2A
 
 ### The Ultimate Integration
 
@@ -568,6 +652,58 @@ cd labs/lab9_voice_iot && pixi run demo       # Terminal 2
 </v-click>
 
 ---
+
+# Lab 10: Agent Registry
+
+### Discover and Share Agents
+
+<div class="grid grid-cols-2 gap-4">
+
+<div>
+
+```python
+# Register your agent
+from register import register
+register(
+    "http://registry:8000",
+    "http://your-ip:9999"
+)
+```
+
+- Central registry for the lab
+- Web UI to see all agents
+- Send messages to any agent
+- Health-checking keeps it fresh
+
+</div>
+
+<div>
+
+```
+┌──────────────────────┐
+│   Agent Registry     │
+│   ┌──────────────┐   │
+│   │ Tool Agent   │   │
+│   │ IoT Agent    │   │
+│   │ Your Agent!  │   │
+│   └──────────────┘   │
+│   [Chat] [Card]      │
+└──────────────────────┘
+```
+
+</div>
+
+</div>
+
+<v-click>
+
+```bash
+cd labs/lab10_registry && pixi run registry
+```
+
+</v-click>
+
+---
 layout: center
 class: text-center
 ---
@@ -593,7 +729,7 @@ Groups rotate through 3 physical device stations (~30 min each)
 <v-click>
 
 ### At Each Station
-1. Connect your agent to the MCP server
+1. Connect your agent to the device
 2. Explore the available tools
 3. Create multi-modal interactions
 4. **Get candy from the Candytron!**
@@ -618,6 +754,35 @@ layout: center
 class: text-center
 ---
 
+# Resources
+
+<div class="grid grid-cols-2 gap-8 text-left pt-8">
+
+<div>
+
+### Standards
+- [A2A Protocol](https://google.github.io/A2A/)
+- [MCP Documentation](https://modelcontextprotocol.io/)
+- [Pydantic AI](https://ai.pydantic.dev/)
+
+</div>
+
+<div>
+
+### Tools
+- [Ollama](https://ollama.com/)
+- [Ultralytics YOLO](https://docs.ultralytics.com/)
+- [OpenAI Whisper](https://github.com/openai/whisper)
+
+</div>
+
+</div>
+
+---
+layout: center
+class: text-center
+---
+
 # Questions?
 
 **Joakim Eriksson**
@@ -626,6 +791,6 @@ joakim.eriksson@ri.se
 
 <div class="pt-8">
 
-GitHub: `github.com/joakimeriksson/mcp-agents`
+GitHub: **github.com/joakimeriksson/physical-agent**
 
 </div>
