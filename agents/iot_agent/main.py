@@ -27,7 +27,7 @@ from datetime import datetime
 import httpx
 import uvicorn
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerHTTP
+from pydantic_ai.mcp import MCPServerStreamableHTTP
 from a2a.types import AgentProvider
 
 # Enable debug logging for pydantic-ai
@@ -54,7 +54,7 @@ if not DIRIGERA_MCP_URL:
 
 # --- MCP Connection ---
 
-mcp_server = MCPServerHTTP(url=f"{DIRIGERA_MCP_URL}/sse")
+mcp_server = MCPServerStreamableHTTP(f"{DIRIGERA_MCP_URL}/mcp")
 
 
 # --- Device Discovery at Startup (using MCP client) ---
@@ -66,15 +66,15 @@ DEVICE_METADATA = {"lights": [], "sensors": [], "outlets": []}
 def discover_devices_sync():
     """Fetch device lists from MCP server at startup using direct MCP client."""
     from mcp import ClientSession
-    from mcp.client.sse import sse_client
+    from mcp.client.streamable_http import streamablehttp_client
 
     devices = {"lights": [], "sensors": [], "outlets": []}
-    mcp_url = f"{DIRIGERA_MCP_URL}/sse"
+    mcp_url = f"{DIRIGERA_MCP_URL}/mcp"
 
     async def _discover():
         print(f"[*] Connecting to MCP server at {mcp_url}...", flush=True)
 
-        async with sse_client(mcp_url) as (read, write):
+        async with streamablehttp_client(mcp_url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 print("[+] MCP session initialized", flush=True)

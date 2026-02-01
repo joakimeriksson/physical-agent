@@ -537,10 +537,10 @@ cd labs/lab5_mcp && pixi run demo
 
 ```python
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerHTTP
+from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 # Connect to remote DIRIGERA MCP server
-mcp_server = MCPServerHTTP(url="http://dirigera.local:8000/sse")
+mcp_server = MCPServerStreamableHTTP("http://dirigera.local:8000/mcp")
 
 agent = Agent("ollama:qwen3:4b", mcp_servers=[mcp_server])
 
