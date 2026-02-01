@@ -78,6 +78,263 @@ AI is moving from the **digital** world...
 
 ---
 layout: center
+---
+
+# The Next Step: Physical AI Evolution
+
+Where is this all heading?
+
+---
+
+# LLMs + Function Calling
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+### The Foundation
+
+LLMs can reason and decide **when** to act:
+
+<v-clicks>
+
+- Text in → text out, but with **tool use**
+- LLM decides which function to call
+- Structured outputs (JSON) for actions
+- Works today with Ollama, GPT-4, Claude
+
+</v-clicks>
+
+</div>
+
+<div>
+
+### Example
+
+```python
+@agent.tool
+def turn_on_light(room: str) -> str:
+    """Turn on light in a room"""
+    return set_light(room, on=True)
+
+# LLM decides to call this tool
+agent.run("It's getting dark in here")
+# → calls turn_on_light("living room")
+```
+
+<v-click>
+
+**Limitation:** LLM can't see the world
+
+</v-click>
+
+</div>
+
+</div>
+
+---
+
+# Vision-Language Models (VLMs)
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+### Adding Eyes to LLMs
+
+Now the model can **see** and reason:
+
+<v-clicks>
+
+- Image + text in → text out
+- Understands scenes, objects, text in images
+- Can describe what it sees
+- Still needs function calling to act
+
+</v-clicks>
+
+</div>
+
+<div>
+
+### Example
+
+```python
+# VLM can see and reason
+response = vlm.run(
+    image=camera.capture(),
+    prompt="What candy colors do you see?"
+)
+# → "I see red, green, and yellow candies"
+
+# Still needs tools to act
+@agent.tool
+def pick_candy(color: str): ...
+```
+
+<v-click>
+
+**Limitation:** Separate vision and action
+
+</v-click>
+
+</div>
+
+</div>
+
+<v-click>
+
+**Models:** LLaVA, Qwen2-VL, GPT-4V, Gemini Pro Vision, Claude
+
+</v-click>
+
+---
+
+# Vision-Language-Action (VLA) Models
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+### The New Paradigm
+
+Instead of separate models for vision, language, and control:
+
+<v-clicks>
+
+- **One model** that sees, understands, and acts
+- Trained on robot demonstration data
+- Natural language instructions → robot actions
+- Generalizes across tasks and environments
+
+</v-clicks>
+
+</div>
+
+<div>
+
+### Key Models
+
+<v-clicks>
+
+- **OpenVLA** (Stanford) - 7B params, open-source
+  - Outperforms RT-2-X with 7× fewer params
+- **π0** (Physical Intelligence) - 3B VLM + diffusion
+  - 50Hz continuous control
+  - Remarkable dexterity
+- **RT-2** (Google) - Pioneer VLA
+
+</v-clicks>
+
+</div>
+
+</div>
+
+<v-click>
+
+[arxiv.org/abs/2406.09246](https://arxiv.org/abs/2406.09246) | [learnopencv.com/vision-language-action-models](https://learnopencv.com/vision-language-action-models-lerobot-policy/)
+
+</v-click>
+
+---
+
+# V-JEPA 2: World Models for Robots
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+### Meta's Approach
+
+<v-clicks>
+
+- **World model** trained on 1M+ hours of video
+- Learns physics from watching the world
+- Predicts what happens next
+- Zero-shot robot control in new environments
+- 65-80% success on pick-and-place tasks
+
+</v-clicks>
+
+</div>
+
+<div>
+
+### Why It Matters
+
+<v-clicks>
+
+- No task-specific training needed
+- Only 62 hours of robot video required
+- 30× faster than alternatives (Nvidia Cosmos)
+- Understands cause and effect
+- "Common sense" for robots
+
+</v-clicks>
+
+</div>
+
+</div>
+
+<v-click>
+
+[ai.meta.com/blog/v-jepa-2-world-model-benchmarks](https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/)
+
+</v-click>
+
+---
+
+# Humanoid Robots: 2026 Reality
+
+<div class="grid grid-cols-3 gap-4 text-sm">
+
+<div class="text-center">
+
+<img src="/optimus.webp" class="h-32 mx-auto rounded shadow mb-2" />
+
+### Tesla Optimus
+- Gen 3 deployed in factories
+- Target: 50,000 units in 2026
+- Price goal: $20-30K
+
+</div>
+
+<div class="text-center">
+
+<img src="/neo.jpg" class="h-32 mx-auto rounded shadow mb-2" />
+
+### 1X NEO
+- Consumer home robot
+- Pre-orders open: $20K
+- Soft, safe design (30kg)
+
+</div>
+
+<div class="text-center">
+
+<img src="/figure02.webp" class="h-32 mx-auto rounded shadow mb-2" />
+
+### Figure 02/03
+- BMW factory deployment
+- Enterprise focus (>$100K)
+- OpenAI partnership
+
+</div>
+
+</div>
+
+<v-click>
+
+<div class="pt-4 text-center">
+
+**The shift:** From research demos → commercial deployment
+
+</div>
+
+</v-click>
+
+---
+layout: center
 class: text-center
 ---
 
@@ -91,30 +348,66 @@ layout: two-cols
 
 # Candytron 4000
 
-### Niryo Ned 2
-- 6-axis collaborative robot arm
-- Gripper for manipulation
-- Camera for vision
-- Microphone for speech
-- Speaker for responses
-- Table full of candy!
+### The Idea
+Connect multiple AI models into a system that:
+- Involves **human interaction** (speech)
+- Has **effects on the real world** (robot arm)
+- Runs **only local models** on a laptop with GPU
 
 ::right::
 
-<div class="pl-4 pt-12">
+<div class="pt-4">
+
+### Hardware: Niryo Ned 2
+- 6-axis collaborative robot arm
+- Gripper for candy manipulation
+- External camera (YOLO detection)
+- Microphone (Whisper STT)
+- Speaker (Piper TTS)
+- Configure & modify via web UI
+
+</div>
+
+---
+layout: two-cols
+---
+
+# Candytron 4000
+
+### How It Works
 
 ```
-     Mic       Camera
-        \      /
-         \    /
-      +----------+
-      |   Ned 2  |
-      +----+-----+
-           |
-    +------+------+
-    |  Candy Table |
-    +-------------+
+   "Give me red candy"
+          │
+          ▼
+   ┌──────────────┐
+   │ Whisper STT  │
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │  YOLO Vision │ ◄── candy positions
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │  LLM + Tools │ ◄── pick red @ (x,y)
+   └──────┬───────┘
+          ▼
+   ┌──────────────┐
+   │  Robot Arm   │ ◄── grip & deliver
+   └──────────────┘
 ```
+
+::right::
+
+<div class="pt-12 pl-4">
+
+### AI Components
+- **Whisper** → Speech-to-text
+- **YOLO 11** → Detect candy positions
+- **Ollama LLM** → Reasoning + pick action
+- **Piper** → Text-to-speech
+
+All running locally!
 
 </div>
 
@@ -129,13 +422,14 @@ layout: two-cols
 - Antennas for expression
 - Camera in head
 - Moves and looks around
-- Natural interaction
+- Natural voice interaction
+- Configure & modify via web UI
 
 ::right::
 
-<div class="flex items-center justify-center h-full text-9xl">
+<div class="flex items-center justify-center h-full">
 
-🤖
+<img src="/reachy-mini.png" class="h-80 rounded shadow" />
 
 </div>
 
@@ -152,7 +446,7 @@ layout: two-cols
 - Blinds control
 - All via Zigbee
 
-Your AI can control the environment!
+**Build your own agent to control real devices!**
 
 ::right::
 
@@ -182,49 +476,129 @@ The building blocks for physical AI
 
 # Two Protocols for AI Integration
 
-<div class="grid grid-cols-2 gap-8 pt-4">
+<div class="flex justify-center">
+<img src="/a2a-mcp.png" class="h-72 rounded shadow" />
+</div>
+
+<div class="grid grid-cols-2 gap-8 pt-4 text-sm">
 
 <div>
 
-### MCP (Model Context Protocol)
-
-**Client-Server pattern**
-
-```
-┌─────────┐      ┌─────────┐
-│   LLM   │ ───► │   MCP   │
-│ (Client)│      │ (Server)│
-└─────────┘      └─────────┘
-```
-
-- LLM discovers and uses tools
-- Structured tool definitions
-- Resources and prompts
-- **modelcontextprotocol.io**
+**MCP** = Vertical integration (Agent → Tools)
+- Agent connects to tools, databases, APIs
 
 </div>
 
 <div>
 
-### A2A (Agent-to-Agent)
-
-**Peer-to-peer pattern**
-
-```
-┌─────────┐      ┌─────────┐
-│ Agent A │ ◄──► │ Agent B │
-│         │      │         │
-└─────────┘      └─────────┘
-```
-
-- Agents discover each other
-- Exchange messages (tasks)
-- Agent Cards for identity
-- **google.github.io/A2A**
+**A2A** = Horizontal integration (Agent ↔ Agent)
+- Agents discover and collaborate with each other
 
 </div>
 
 </div>
+
+<div class="text-xs opacity-50 pt-4">
+
+Source: [blog.logto.io/a2a-mcp](https://blog.logto.io/a2a-mcp)
+
+</div>
+
+---
+
+# MCP: Model Context Protocol
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+**By Anthropic** - Like USB-C for AI
+
+<v-clicks>
+
+- **Tools**: Functions the LLM can call
+- **Resources**: Structured data access
+- **Prompts**: Reusable templates
+- Transport: stdio, HTTP (streamable)
+
+</v-clicks>
+
+</div>
+
+<div>
+
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("iot-tools")
+
+@mcp.tool()
+def turn_on_light(room: str) -> str:
+    """Turn on light in a room"""
+    dirigera.set_light(room, on=True)
+    return f"Light in {room} is now on"
+
+# Any MCP client can discover & use this!
+```
+
+</div>
+
+</div>
+
+<v-click>
+
+**Why it matters:** Your agent can use ANY MCP server - IoT, databases, APIs...
+
+</v-click>
+
+---
+
+# A2A: Agent-to-Agent Protocol
+
+<div class="grid grid-cols-2 gap-8">
+
+<div>
+
+**By Google + 50 partners** - Agents talking to agents
+
+<v-clicks>
+
+- **Agent Cards**: JSON describing capabilities
+- **Tasks**: Request/response with lifecycle
+- **Artifacts**: Rich data exchange
+- **Security**: OAuth 2.0, API keys built-in
+
+</v-clicks>
+
+</div>
+
+<div>
+
+```python
+from pydantic_ai import Agent
+
+agent = Agent("ollama:qwen3:4b")
+
+@agent.tool
+def get_weather(city: str) -> str:
+    return f"Weather in {city}: 22°C"
+
+# Expose as A2A server
+app = agent.to_a2a()
+
+# Other agents can now discover and
+# send tasks to this agent!
+```
+
+</div>
+
+</div>
+
+<v-click>
+
+**Why it matters:** Your voice agent can delegate to an IoT agent, which delegates to a weather agent...
+
+</v-click>
 
 ---
 
@@ -287,11 +661,11 @@ speaker.play(tts.synthesize(response))
 <v-click>
 
 The complete loop:
-1. **Hear** → "Can I have a red candy?"
-2. **Think** → LLM decides to call `pick_candy("red")`
-3. **See** → Camera finds red candy position
-4. **Act** → Robot picks and delivers
-5. **Speak** → "Here's your red candy!"
+1. **Hear** → Whisper transcribes "Can I have a red candy?"
+2. **See** → YOLO detects all candy positions
+3. **Think** → LLM picks red candy at (x,y)
+4. **Act** → Robot grips and delivers
+5. **Speak** → TTS says "Here's your red candy!"
 
 </v-click>
 
@@ -314,8 +688,11 @@ What you need installed
 # macOS/Linux
 curl -fsSL https://pixi.sh/install.sh | bash
 
-# Windows PowerShell
-iwr -useb https://pixi.sh/install.ps1 | iex
+# Windows PowerShell (run as Administrator)
+powershell -ExecutionPolicy ByPass -c "irm https://pixi.sh/install.ps1 | iex"
+
+# Windows alternative (recommended):
+winget install prefix-dev.pixi
 ```
 
 ### 2. System Dependencies
@@ -367,18 +744,33 @@ Everyone works through progressive exercises on their laptops
 
 # Lab Overview
 
+<div class="grid grid-cols-2 gap-8 text-sm">
+
+<div>
+
 | Lab | Topic | What You'll Learn |
 |-----|-------|-------------------|
 | 1 | Speech | Whisper STT + Piper TTS |
 | 2 | Vision | YOLO 11 object detection |
-| 3 | Agent | Pydantic AI + Ollama function calling |
-| 4 | Business | Vision + Speech + VLM combined |
+| 3 | Agent | Pydantic AI + Ollama |
+| 4 | Business | Vision + Speech + VLM |
 | 5 | MCP | MCP server pattern |
-| 6 | IoT | Remote MCP to IKEA DIRIGERA |
+
+</div>
+
+<div>
+
+| Lab | Topic | What You'll Learn |
+|-----|-------|-------------------|
+| 6 | IoT | Remote MCP to DIRIGERA |
 | 7 | Voice | Voice pipeline integration |
-| 8 | A2A | Agent-to-agent communication |
-| 9 | Voice IoT | Voice + A2A for smart home |
+| 8 | A2A | Agent-to-agent protocol |
+| 9 | Voice IoT | Voice + A2A smart home |
 | 10 | Registry | A2A agent discovery |
+
+</div>
+
+</div>
 
 ---
 
@@ -471,19 +863,21 @@ cd labs/lab3_agent && pixi run demo
 
 ### Multi-Modal Agent in Action
 
-Combines everything:
-- **Vision** → Camera analyzes your appearance
-- **Speech** → Whisper transcribes your pitch
-- **VLM** → Vision-language model gives feedback
-- **TTS** → Speaks coaching advice
+Combines vision + speech output:
+- **Camera** → Captures your photo
+- **VLM** → Analyzes clothing, grooming, background, pose
+- **TTS** → Speaks the feedback aloud
 
 <v-click>
 
 ```
-You: [Stand in front of camera, deliver pitch]
-AI: "Good energy! Try making more eye contact.
-     Your posture could be more confident.
-     The content was clear but speak slower."
+CLOTHING:   3/10  "Hoodie and ripped jeans are inappropriate"
+GROOMING:   3/10  "Hair is quite messy"
+BACKGROUND: 3/10  "Bookshelf is a bit overwhelming"
+POSE:       4/10  "Slumped somewhat, doesn't project confidence"
+────────────────────────────────────────
+AVERAGE:    3.2/10
+"Hmm, might want to do a bit more preparation..."
 ```
 
 </v-click>
@@ -722,17 +1116,16 @@ Groups rotate through 3 physical device stations (~30 min each)
 
 | Station | Device | Experience |
 |---------|--------|------------|
-| 🍬 Candytron | Niryo Ned 2 robot arm | Vision + Speech + Robot control |
-| 🤖 Reachy Mini | Expressive robot head | Look and interact |
-| 💡 IKEA Smart Home | DIRIGERA hub | Real IoT device control |
+| 🍬 Candytron | Niryo Ned 2 robot arm | Interact via voice & video, configure via web UI |
+| 🤖 Reachy Mini | Expressive robot head | Interact via voice & video, configure via web UI |
+| 💡 IKEA Smart Home | DIRIGERA hub | **Build & connect your own agent!** |
 
 <v-click>
 
 ### At Each Station
-1. Connect your agent to the device
-2. Explore the available tools
-3. Create multi-modal interactions
-4. **Get candy from the Candytron!**
+- **Candytron & Reachy Mini:** Talk to the robots, watch them respond, tweak settings via laptop
+- **IKEA Smart Home:** Connect your agent from Lab 6 to real devices
+- **Get candy from the Candytron!**
 
 </v-click>
 
