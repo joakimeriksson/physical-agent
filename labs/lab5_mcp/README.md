@@ -21,7 +21,8 @@ Simple MCP server with tools, connected to a Pydantic AI agent.
 ## Prerequisites
 
 ```bash
-ollama pull qwen3:4b
+ollama pull qwen2.5:7b   # Recommended (fast)
+ollama pull qwen3:4b     # Alternative (slower, has thinking mode)
 ```
 
 ## Setup
@@ -46,7 +47,7 @@ pixi run server
 Connecting to MCP server...
 Available MCP tools: ['get_time', 'get_system_info', 'calculate']
 
-MCP Agent ready! Using qwen3:4b
+MCP Agent ready! Using qwen2.5:7b
 Type 'quit' to exit.
 
 You: What time is it?
@@ -67,19 +68,17 @@ Goodbye!
 - **MCP Server:** Python `mcp` library with stdio transport
 - **MCP Client:** Connects to server, discovers and calls tools
 - **Agent:** Pydantic AI with Ollama backend
-- **LLM:** qwen3:4b (local)
+- **LLM:** qwen2.5:7b (local, default)
 
 ## Model Options
 
-Small models struggle with knowing when to use tools. Try larger models:
-
 ```bash
-# Default (fast but less accurate)
+# Default (recommended)
 pixi run agent
 
-# Better tool use (requires more RAM)
-OLLAMA_MODEL=llama3.1:8b pixi run agent
-OLLAMA_MODEL=qwen3:4b pixi run agent
+# Alternative models
+OLLAMA_MODEL=qwen3:4b pixi run agent    # Smaller but slower (thinking mode)
+OLLAMA_MODEL=llama3.1:8b pixi run agent # Alternative 8B model
 ```
 
 ## Known Limitations
@@ -105,7 +104,7 @@ Larger models (8B+) or cloud APIs (GPT-4, Claude) are more reliable.
           ▼                              ▼ stdio
 ┌──────────────────┐          ┌───────────────────────┐
 │     Ollama       │          │      server.py        │
-│  (qwen3:4b)   │          │      MCP Server       │
+│ (qwen2.5:7b)  │          │      MCP Server       │
 │                  │          │  ┌─────────────────┐  │
 │  LLM decides     │          │  │ get_time        │  │
 │  which tools     │          │  │ get_system_info │  │

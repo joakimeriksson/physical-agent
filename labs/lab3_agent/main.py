@@ -25,9 +25,10 @@ from pydantic_ai import Agent
 # Set Ollama base URL for pydantic-ai
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 
-# Using Ollama with a small local model
-# Note: Small models (3-8B) are inconsistent with function calling
-MODEL_NAME = "qwen3:4b"
+# Using Ollama with a local model
+# Default: qwen2.5:7b (fast, no thinking overhead)
+# Alternative: qwen3:4b (slower due to thinking mode, but smaller)
+MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 agent = Agent(
     f"ollama:{MODEL_NAME}",

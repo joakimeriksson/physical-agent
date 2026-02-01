@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lab1_speech"))
 
 # TODO: Set up Ollama model
 # os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-# MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+# MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")  # or qwen3:4b
 
 
 def voice_agent_loop():

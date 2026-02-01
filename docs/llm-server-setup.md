@@ -4,19 +4,20 @@ This document describes the shared LLM server configuration for the hands-on lab
 
 ## Remote Server
 
-**IP:** `192.168.101.116`
+**IP:** `<LLM_SERVER_IP>`
 
 ### Ollama (Recommended for Agents)
 
-- **URL:** `http://192.168.101.116:11434`
-- **OpenAI-compatible:** `http://192.168.101.116:11434/v1`
+- **URL:** `http://<LLM_SERVER_IP>:11434`
+- **OpenAI-compatible:** `http://<LLM_SERVER_IP>:11434/v1`
 
 **Available Models:**
 
 | Model | Size | Tool Calling | Vision | Use Case |
 |-------|------|--------------|--------|----------|
-| qwen2.5:7b | 4.7 GB | ✅ Yes | ❌ No | Agents with tools |
-| gemma3:latest | 3.3 GB | ❌ No | ✅ Yes | Vision/multimodal |
+| qwen3:4b | 2.6 GB | ✅ Yes | ❌ No | Labs (default) |
+| qwen2.5:7b | 4.7 GB | ✅ Yes | ❌ No | Production agents |
+| gemma3:4b | 3.3 GB | ❌ No | ✅ Yes | Vision/multimodal |
 
 **Performance (warm):**
 
@@ -27,8 +28,8 @@ This document describes the shared LLM server configuration for the hands-on lab
 
 ### SGLang (Alternative)
 
-- **URL:** `http://192.168.101.116:30000`
-- **OpenAI-compatible:** `http://192.168.101.116:30000/v1`
+- **URL:** `http://<LLM_SERVER_IP>:30000`
+- **OpenAI-compatible:** `http://<LLM_SERVER_IP>:30000/v1`
 
 **Available Models:**
 
@@ -46,24 +47,31 @@ This document describes the shared LLM server configuration for the hands-on lab
 Set these before running labs or agents:
 
 ```bash
-# Point to remote Ollama server
-export OLLAMA_BASE_URL=http://192.168.101.116:11434/v1
+# Point to remote Ollama server (optional - labs work locally too)
+export OLLAMA_BASE_URL=http://<LLM_SERVER_IP>:11434/v1
 
-# Set default model for pydantic-ai agents
+# For labs (default model)
+export PYDANTIC_AI_MODEL=ollama:qwen3:4b
+
+# For production agents (more capable)
 export PYDANTIC_AI_MODEL=ollama:qwen2.5:7b
 ```
 
 ### Per-Lab Configuration
 
-| Lab | Model | Notes |
-|-----|-------|-------|
-| lab3_agent | qwen2.5:7b | Tool calling |
+| Lab | Default Model | Notes |
+|-----|---------------|-------|
+| lab3_agent | qwen3:4b | Tool calling |
 | lab4_business | gemma3:4b | Vision required (multimodal) |
-| lab5_mcp | qwen2.5:7b | Tool calling via MCP |
-| lab6_iot | qwen2.5:7b | IoT device control |
-| lab7_voice | qwen2.5:7b | Voice + LLM |
-| lab8_a2a | qwen2.5:7b | Agent-to-agent |
-| lab9_voice_iot | qwen2.5:7b | Voice + IoT |
+| lab5_mcp | qwen3:4b | Tool calling via MCP |
+| lab6_iot | qwen3:4b | IoT device control |
+| lab7_voice | qwen3:4b | Voice + LLM |
+| lab8_a2a | qwen3:4b | Agent-to-agent |
+| lab9_voice_iot | qwen3:4b | Voice + IoT |
+
+### Production Agents
+
+Agents in `agents/` use `qwen2.5:7b` by default for better reliability.
 
 ### Agent Configuration
 
@@ -71,18 +79,18 @@ All agents in `agents/` directory support environment variables:
 
 ```bash
 # Candytron
-OLLAMA_BASE_URL=http://192.168.101.116:11434/v1 \
+OLLAMA_BASE_URL=http://<LLM_SERVER_IP>:11434/v1 \
 PYDANTIC_AI_MODEL=ollama:qwen2.5:7b \
 pixi run agent
 
 # IoT Agent
-OLLAMA_BASE_URL=http://192.168.101.116:11434/v1 \
+OLLAMA_BASE_URL=http://<LLM_SERVER_IP>:11434/v1 \
 PYDANTIC_AI_MODEL=ollama:qwen2.5:7b \
 DIRIGERA_MCP_URL=http://localhost:8080 \
 pixi run agent
 
 # Reachy
-OLLAMA_BASE_URL=http://192.168.101.116:11434/v1 \
+OLLAMA_BASE_URL=http://<LLM_SERVER_IP>:11434/v1 \
 PYDANTIC_AI_MODEL=ollama:qwen2.5:7b \
 pixi run voice
 ```
@@ -171,13 +179,13 @@ sudo systemctl restart ollama
 ### Test Ollama Connection
 
 ```bash
-curl http://192.168.101.116:11434/api/tags
+curl http://<LLM_SERVER_IP>:11434/api/tags
 ```
 
 ### Test Tool Calling
 
 ```bash
-curl -X POST "http://192.168.101.116:11434/v1/chat/completions" \
+curl -X POST "http://<LLM_SERVER_IP>:11434/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen2.5:7b",
@@ -195,12 +203,21 @@ curl -X POST "http://192.168.101.116:11434/v1/chat/completions" \
 ### Check Loaded Models
 
 ```bash
-curl http://192.168.101.116:11434/api/ps
+curl http://<LLM_SERVER_IP>:11434/api/ps
 ```
 
-### Pull a Model
+### Pull Models
 
 ```bash
-curl -X POST http://192.168.101.116:11434/api/pull \
+# For labs
+curl -X POST http://<LLM_SERVER_IP>:11434/api/pull \
+  -d '{"name": "qwen3:4b"}'
+
+# For agents
+curl -X POST http://<LLM_SERVER_IP>:11434/api/pull \
   -d '{"name": "qwen2.5:7b"}'
+
+# For vision (lab4)
+curl -X POST http://<LLM_SERVER_IP>:11434/api/pull \
+  -d '{"name": "gemma3:4b"}'
 ```

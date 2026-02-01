@@ -1,5 +1,288 @@
 # Physical Agent Architecture Plan
 
+## Session Progress (2026-01-29)
+
+### Completed Today
+
+#### Production IoT Agent (`agents/iot_agent/`)
+- [x] Connects to real DIRIGERA hub via MCP (port 8081)
+- [x] Device discovery at startup using MCP client
+- [x] Dynamic system prompt with discovered device names
+- [x] A2A skills with hierarchical naming convention:
+  - `iot.light.control` - Light Control
+  - `iot.sensor.environment` - Environment Sensors
+  - `iot.outlet.control` - Outlet Control
+- [x] 2-minute timeout for slow models (`ModelSettings(timeout=120)`)
+- [x] Auto-registration with registry
+
+#### Registry Improvements (`labs/lab10_registry/`)
+- [x] Extended polling timeout to 90 seconds
+- [x] Extended HTTP client timeout to 120 seconds
+- [x] Fixed JSON escaping for agent card popup (HTML escape)
+- [x] Skills now displayed in UI
+
+#### Model Comparison Results
+| Model | Size | Tool Calling | Speed | Recommendation |
+|-------|------|--------------|-------|----------------|
+| qwen3:4b | 2.5GB | Works | ~90s | Long `<think>` blocks |
+| llama3.2:3b | 2GB | Broken | Fast | Outputs raw JSON |
+| **qwen2.5:7b** | 4.7GB | **Works** | ~30s | **Recommended** |
+
+### Running the Current System
+
+```bash
+# Terminal 1: DIRIGERA MCP Server
+cd /path/to/mcp-agents/dirigera/fastmcp
+uv run python dirigeramcp.py --transport sse --host 0.0.0.0 --port 8081
+
+# Terminal 2: IoT Agent
+cd agents/iot_agent
+DIRIGERA_MCP_URL=http://localhost:8081 PYDANTIC_AI_MODEL=ollama:qwen2.5:7b pixi run agent
+
+# Terminal 3: Registry
+cd labs/lab10_registry
+pixi run registry
+
+# Access:
+# - Registry UI: http://localhost:8000
+# - IoT Agent: http://localhost:9998
+```
+
+---
+
+## Planned Improvements
+
+### Phase 1: SGLang for Performance (Priority: High)
+
+Replace Ollama with SGLang for up to **5x faster** tool calling.
+
+**Benefits:**
+- RadixAttention for prefix caching (reuses system prompts)
+- 3x faster JSON decoding (tool outputs)
+- Speculative decoding, continuous batching
+
+**Setup:**
+```bash
+pip install sglang
+
+python -m sglang.launch_server \
+    --model-path Qwen/Qwen2.5-7B-Instruct \
+    --host 0.0.0.0 --port 30000
+
+# Use with IoT Agent (drop-in replacement)
+OPENAI_BASE_URL=http://localhost:30000/v1 \
+OPENAI_API_KEY=EMPTY \
+PYDANTIC_AI_MODEL=openai:Qwen/Qwen2.5-7B-Instruct \
+pixi run agent
+```
+
+**Reference:** https://github.com/sgl-project/sglang
+
+---
+
+### Phase 2: NVIDIA Jetson / Spark Edge Deployment (Priority: High)
+
+Run the complete stack on NVIDIA edge hardware for standalone physical agents.
+
+**Target Hardware:**
+- NVIDIA Jetson Orin Nano (8GB) - Entry level
+- NVIDIA Jetson AGX Orin (32-64GB) - Full performance
+- NVIDIA Spark (upcoming edge AI platform)
+
+**Edge Stack:**
+```
+┌─────────────────────────────────────────────────┐
+│              NVIDIA Jetson / Spark              │
+├─────────────────────────────────────────────────┤
+│  SGLang + Qwen2.5-7B (quantized INT4/AWQ)      │
+│  ───────────────────────────────────────────── │
+│  IoT Agent (A2A server on port 9998)           │
+│  ───────────────────────────────────────────── │
+│  DIRIGERA MCP Server (port 8081)               │
+│  ───────────────────────────────────────────── │
+│  Whisper (speech) + YOLO (vision)              │
+└─────────────────────────────────────────────────┘
+           │
+           ▼ (Network/Zigbee)
+    IKEA DIRIGERA Hub
+    └── Lights, Sensors, Outlets
+```
+
+**Tasks:**
+- [ ] Test SGLang on Jetson Orin with CUDA
+- [ ] Quantize Qwen2.5-7B to INT4/AWQ for memory efficiency
+- [ ] Benchmark inference speed on Jetson vs laptop
+- [ ] Create Docker/container for edge deployment
+- [ ] Test with real DIRIGERA hub over network
+- [ ] Add camera input for vision-based automation
+- [ ] Wake word detection for hands-free control
+
+**Quantization for Edge:**
+```bash
+# AWQ quantization (4-bit, recommended for Jetson)
+python -m sglang.launch_server \
+    --model-path Qwen/Qwen2.5-7B-Instruct-AWQ \
+    --quantization awq
+
+# Memory footprint
+# FP16: ~14GB (too big for Orin Nano)
+# INT4: ~4GB (fits on Orin Nano 8GB)
+```
+
+**Memory Requirements:**
+| Model | FP16 | INT4/AWQ | Jetson Orin Nano 8GB |
+|-------|------|----------|---------------------|
+| Qwen2.5-7B | 14GB | 4GB | ✅ Fits |
+| Qwen2.5-3B | 6GB | 2GB | ✅ Fits |
+| Llama3.2-3B | 6GB | 2GB | ✅ Fits |
+
+---
+
+### Phase 2b: End-to-End Speech-to-Speech on Edge (Priority: High)
+
+Test real-time voice interaction without cascade (STT→LLM→TTS).
+
+**Candidate Models:**
+
+| Model | Latency | Size | Edge Feasibility |
+|-------|---------|------|------------------|
+| **PersonaPlex** (NVIDIA) | 160-200ms | 7B | ✅ Ready in `experimental/` |
+| **Moshi** (Kyutai) | 160-200ms | ~7B | ✅ Rust+CUDA, 4-bit quant |
+| **Ultravox** (Fixie) | ~150ms TTFT | 8B | ⚠️ Needs optimization |
+| **Mini-Omni** | ~300ms | ~7B | ⚠️ Quality issues |
+| Cascade (Whisper+LLM+TTS) | 500-800ms | varies | ✅ Current approach |
+
+#### PersonaPlex - Full-Duplex with Persona Control (READY TO TEST)
+
+**Location:** `experimental/personaplex/` (already cloned and configured for M2 Mac)
+
+[PersonaPlex](https://github.com/NVIDIA/personaplex) extends Moshi with **persona control**:
+
+```bash
+# Run on M2 Mac (already configured with CPU offload)
+cd experimental/personaplex
+pixi install
+pixi run install-moshi
+export HF_TOKEN=<your_huggingface_token>
+pixi run server-ssl  # Web UI at https://localhost:8998
+```
+
+**Features:**
+- Full-duplex (always listening, always generating)
+- **Text-based role prompts** - define custom personas
+- **Voice conditioning** - choose from 18 preset voices
+- Handles interruptions and backchannels naturally
+- Based on Moshi + Helium 7B backbone
+
+**Voice Presets:**
+```
+Natural (conversational): NATF0-3 (female), NATM0-3 (male)
+Variety (diverse):        VARF0-4 (female), VARM0-4 (male)
+```
+
+**Example Prompts for IoT Assistant:**
+```
+# General IoT assistant
+You are a helpful smart home assistant. Control lights, read sensors, and
+manage power outlets. Respond concisely and confirm actions taken.
+
+# Specific persona
+You work for SmartHome Labs and your name is Alex. You help users control
+their IKEA DIRIGERA smart home devices including lights, sensors, and outlets.
+Information: Available devices include Desk Lamp, Living Room Light, and
+Environment Sensor. Always confirm what actions you've taken.
+```
+
+**Lab Opportunity:**
+1. Run PersonaPlex server
+2. Create custom "IoT Assistant" persona
+3. Have real-time voice conversations about smart home control
+4. Integrate with IoT Agent for actual device control
+
+**Tasks:**
+- [ ] Test PersonaPlex on M2 Mac with CPU offload
+- [ ] Create IoT assistant persona prompt
+- [ ] Benchmark latency on local hardware
+- [ ] Test on NVIDIA Jetson with CUDA backend
+- [ ] Integrate voice output with IoT agent for actual control
+
+#### Moshi - Full-Duplex Speech LLM (Base Model)
+
+[Moshi](https://github.com/kyutai-labs/moshi) is **always listening, always generating** - true full-duplex:
+
+```bash
+# Rust + CUDA backend (recommended for Jetson)
+cd moshi/rust
+cargo run --features cuda --bin moshi-backend -r -- standalone
+
+# Python with quantization (4-bit for memory efficiency)
+python -m moshi_mlx.local -q 4
+```
+
+**Features:**
+- 160ms theoretical latency (200ms practical)
+- Handles interruptions naturally
+- Based on Helium 7B text LLM
+- Uses Mimi neural audio codec
+
+**Tasks:**
+- [ ] Test Moshi Rust backend on Jetson Orin
+- [ ] Benchmark latency and memory usage
+- [ ] Integrate with IoT agent for voice control
+- [ ] Test full-duplex conversation quality
+
+#### Ultravox - Speech Understanding
+
+[Ultravox](https://github.com/fixie-ai/ultravox) understands speech directly (no ASR):
+
+```python
+# 8B model for edge
+from ultravox import Ultravox
+model = Ultravox.from_pretrained("fixie-ai/ultravox-v0_4_1-llama-3_1-8b")
+```
+
+**Features:**
+- Direct audio → LLM (no transcription step)
+- ~150ms time-to-first-token
+- Built on Llama 3.1 8B
+
+**References:**
+- [PersonaPlex GitHub](https://github.com/NVIDIA/personaplex) - NVIDIA's persona-controlled Moshi
+- [PersonaPlex Weights](https://huggingface.co/nvidia/personaplex-7b-v1) - HuggingFace model
+- [Moshi Paper](https://arxiv.org/abs/2410.00037)
+- [Ultravox GitHub](https://github.com/fixie-ai/ultravox)
+- [NVIDIA Jetson Edge LLM Guide](https://developer.nvidia.com/blog/getting-started-with-edge-ai-on-nvidia-jetson-llms-vlms-and-foundation-models-for-robotics/)
+
+---
+
+### Phase 3: Skill Standardization (Priority: Medium)
+
+Since A2A has no global skill registry, define our convention:
+
+```
+iot.light.control        # On/off, brightness, color
+iot.light.scene          # Scenes, schedules
+iot.sensor.temperature   # Temperature readings
+iot.sensor.humidity      # Humidity readings
+iot.sensor.air_quality   # CO2, VOC, PM2.5
+iot.outlet.control       # On/off
+iot.outlet.energy        # Power monitoring
+iot.blind.control        # Open/close, position
+iot.climate.control      # HVAC, thermostats
+```
+
+**Discovery Tags:** `smart-home`, `ikea`, `dirigera`, `zigbee`, `lighting`, `sensors`
+
+---
+
+### Phase 4: Additional Agents (Priority: Medium)
+
+- [ ] **Voice Agent** - Whisper STT + Piper TTS, A2A client
+- [ ] **Vision Agent** - YOLO detection, occupancy sensing
+- [ ] **Orchestrator Agent** - Multi-agent coordination
+
+---
+
 ## Overview
 
 Software architecture combining MCP (Model Context Protocol) and A2A (Agent-to-Agent Protocol) for the Jfokus 2026 hands-on lab. The architecture enables AI agents to control physical devices (Candytron, Reachy Mini, IKEA smart home) through a progressive, layered approach.

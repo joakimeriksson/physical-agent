@@ -16,7 +16,8 @@ Complete Labs 1 and 5 first to understand the components.
 
 ```bash
 # Ensure Ollama is running with a model
-ollama pull qwen3:4b
+ollama pull qwen2.5:7b   # Recommended
+ollama pull qwen3:4b     # Alternative (slower)
 ```
 
 ## Setup
@@ -41,7 +42,7 @@ Edit `main.py` to:
    from pydantic_ai.mcp import MCPServerStdio
 
    mcp_server = MCPServerStdio(sys.executable, [str(server_script)])
-   agent = Agent("ollama:qwen3:4b", toolsets=[mcp_server])
+   agent = Agent("ollama:qwen2.5:7b", toolsets=[mcp_server])
    ```
 
 3. **Build the voice loop**:
@@ -85,7 +86,7 @@ async def run_voice_agent():
     mcp_server = MCPServerStdio(sys.executable, [str(server_script)])
 
     agent = Agent(
-        "ollama:qwen3:4b",
+        "ollama:qwen2.5:7b",
         system_prompt="You are a helpful voice assistant. Be concise.",
         toolsets=[mcp_server],
     )

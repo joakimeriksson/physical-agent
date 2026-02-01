@@ -22,7 +22,7 @@ Control IKEA smart home devices (lights, outlets, sensors) through natural langu
 │           ▼                                   ▼                 │
 │  ┌─────────────────┐              ┌─────────────────────────┐   │
 │  │     Ollama      │              │    IKEA DIRIGERA Hub    │   │
-│  │  (qwen3:4b)  │              │    ┌─────────────────┐  │   │
+│  │ (qwen2.5:7b) │              │    ┌─────────────────┐  │   │
 │  └─────────────────┘              │    │ Lights          │  │   │
 │                                   │    │ Outlets         │  │   │
 │                                   │    │ Sensors         │  │   │
@@ -34,7 +34,8 @@ Control IKEA smart home devices (lights, outlets, sensors) through natural langu
 ## Prerequisites
 
 ```bash
-ollama pull qwen3:4b
+ollama pull qwen2.5:7b   # Recommended (fast)
+ollama pull qwen3:4b     # Alternative (slower, has thinking mode)
 ```
 
 ## Setup
@@ -70,7 +71,7 @@ Connecting to MCP server: http://192.168.1.100:8000/mcp
 Available IoT tools: ['get_lights', 'get_outlets', 'get_environment_sensors',
                       'set_onoff', 'set_light_level', 'set_light_color']
 
-IoT Agent ready! Using qwen3:4b
+IoT Agent ready! Using qwen2.5:7b
 Type 'quit' to exit.
 
 You: What lights do we have?

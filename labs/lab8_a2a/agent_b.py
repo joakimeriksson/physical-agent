@@ -16,7 +16,8 @@ from a2a.types import AgentProvider
 
 # Use Ollama by default (local model)
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:qwen3:4b")
+# Default: qwen2.5:7b (fast), Alternative: qwen3:4b (slower, thinking mode)
+MODEL = os.environ.get("PYDANTIC_AI_MODEL", "ollama:qwen2.5:7b")
 
 # Create the agent with tools
 agent = Agent(

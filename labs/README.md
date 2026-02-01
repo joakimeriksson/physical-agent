@@ -23,7 +23,8 @@ brew install ollama
 
 Pull required models:
 ```bash
-ollama pull qwen3:4b        # For agent labs (3, 5, 6)
+ollama pull qwen2.5:7b      # For agent labs (3, 5, 6) - fast, recommended
+ollama pull qwen3:4b        # Alternative (slower due to thinking mode)
 ollama pull gemma3:4b       # For vision lab (4)
 ```
 

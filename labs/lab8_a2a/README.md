@@ -29,7 +29,7 @@ Key concepts:
 pixi install
 ```
 
-**Requirements:** Ollama running locally with `qwen3:4b` model (or set `PYDANTIC_AI_MODEL` env var).
+**Requirements:** Ollama running locally with `qwen2.5:7b` model (or `qwen3:4b` as alternative, or set `PYDANTIC_AI_MODEL` env var).
 
 ## Usage
 
@@ -49,7 +49,7 @@ pixi run agent-a
 Terminal 1:
 $ pixi run agent-b
 Starting Agent B (A2A Server) on port 9999...
-Model: ollama:qwen3:4b
+Model: ollama:qwen2.5:7b
 Tools: calculate, get_time
 
 Terminal 2:
@@ -79,7 +79,7 @@ from pydantic_ai import Agent
 
 # Create agent with tools
 agent = Agent(
-    "ollama:qwen3:4b",
+    "ollama:qwen2.5:7b",
     system_prompt="You are a helpful assistant with calculator and time tools.",
 )
 
@@ -150,7 +150,7 @@ pixi run test
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | Ollama API URL |
-| `PYDANTIC_AI_MODEL` | `ollama:qwen3:4b` | Model to use |
+| `PYDANTIC_AI_MODEL` | `ollama:qwen2.5:7b` | Model to use |
 
 ## Next Steps
 

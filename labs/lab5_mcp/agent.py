@@ -15,7 +15,8 @@ from pydantic_ai.mcp import MCPServerStdio
 
 # Ollama setup
 os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+# Default: qwen2.5:7b (fast), Alternative: qwen3:4b (slower, thinking mode)
+MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 
 async def run_agent():
