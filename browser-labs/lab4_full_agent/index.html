@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Home Agent</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+    --green: #4ade80; --yellow: #fbbf24; --red: #f87171;
+    --tool-bg: #172554;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  header { padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 1.3rem; }
+  .status { font-size: 0.8rem; color: var(--muted); }
+  .status.ok { color: var(--green); }
+  .status.error { color: var(--red); }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Left: Devices */
+  .devices { width: 280px; border-right: 1px solid var(--border); overflow-y: auto; }
+  .panel-title { padding: 0.6rem 1rem; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .device { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .device-name { font-weight: 600; }
+  .device-info { color: var(--muted); font-size: 0.8rem; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .dot-on { background: var(--green); }
+  .dot-off { background: var(--red); }
+  .sensor-val { color: var(--accent); font-weight: 600; }
+  .btn-refresh { background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; float: right; }
+
+  /* Center: Chat */
+  .chat { flex: 1; display: flex; flex-direction: column; }
+  .messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .msg { max-width: 85%; padding: 0.6rem 0.9rem; border-radius: 10px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { background: var(--accent); color: #000; align-self: flex-end; }
+  .msg.assistant { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
+  .msg.tool { background: var(--tool-bg); border: 1px solid #1e40af; align-self: flex-start; font-family: monospace; font-size: 0.75rem; max-width: 90%; }
+  .msg.thinking { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; color: var(--muted); font-style: italic; }
+  .tool-label { color: var(--yellow); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 0.4rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .input-bar { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .input-bar input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.9rem; }
+  .input-bar input:focus { outline: none; border-color: var(--accent); }
+  .input-bar button { background: var(--accent); color: #000; border: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+  .input-bar button:disabled { opacity: 0.4; }
+  .btn-camera { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-mic { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-mic.recording { background: var(--red); color: white; border-color: var(--red); }
+
+  /* Right: Camera */
+  .camera-panel { width: 300px; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .camera-panel video { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: #000; }
+  .camera-panel canvas { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: none; }
+  .camera-controls { padding: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; background: var(--surface); }
+  .camera-controls button { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .camera-controls button.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  @media (max-width: 1000px) {
+    .camera-panel { display: none; }
+    .devices { width: 220px; }
+  }
+  @media (max-width: 700px) {
+    .devices { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Smart Home Agent</h1>
+  <span class="status" id="status">Connecting...</span>
+</header>
+
+<div class="main">
+  <!-- Devices -->
+  <div class="devices">
+    <div class="panel-title">Devices <button class="btn-refresh" id="btn-refresh">Refresh</button></div>
+    <div id="device-list"><div class="device"><div class="device-info">Loading...</div></div></div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat">
+    <div class="messages" id="messages">
+      <div class="msg assistant">Hi! I can control your smart home. Try "What lights are available?" or "What's the temperature?" You can also take a photo and ask me about it.</div>
+    </div>
+    <div class="input-bar">
+      <input type="text" id="input" placeholder="Type a message or use the camera..." autofocus>
+      <button id="btn-send">Send</button>
+    </div>
+  </div>
+
+  <!-- Camera -->
+  <div class="camera-panel">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="camera-controls">
+      <button id="btn-snap" class="primary">Snap + Ask</button>
+      <button id="btn-cam-toggle">Camera Off</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = ""; // same origin
+
+// --- DOM ---
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("input");
+const btnSend = document.getElementById("btn-send");
+const statusEl = document.getElementById("status");
+const deviceList = document.getElementById("device-list");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+
+function addMsg(cls, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + cls;
+  d.textContent = text;
+  messagesEl.appendChild(d);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return d;
+}
+
+function addToolMsg(calls) {
+  for (const tc of calls) {
+    const d = document.createElement("div");
+    d.className = "msg tool";
+    const short = tc.result.length > 150 ? tc.result.slice(0, 150) + "..." : tc.result;
+    d.innerHTML = `<div class="tool-label">Tool: ${tc.tool}</div>${JSON.stringify(tc.args)}\n→ ${short}`;
+    messagesEl.appendChild(d);
+  }
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// --- Chat ---
+let chatHistory = [];
+let busy = false;
+
+async function sendChat(text) {
+  if (!text || busy) return;
+  busy = true;
+  btnSend.disabled = true;
+  inputEl.value = "";
+
+  addMsg("user", text);
+  const thinking = addMsg("thinking", "");
+  thinking.innerHTML = '<span class="spinner"></span>Thinking...';
+
+  try {
+    const resp = await fetch(`${API}/api/chat`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: text, history: chatHistory })
+    });
+    thinking.remove();
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      addMsg("assistant", `Error: ${err}`);
+    } else {
+      const data = await resp.json();
+      if (data.tool_calls && data.tool_calls.length > 0) addToolMsg(data.tool_calls);
+      addMsg("assistant", data.response);
+      chatHistory.push({role: "user", content: text});
+      chatHistory.push({role: "assistant", content: data.response});
+      // Refresh devices after commands
+      if (data.tool_calls?.some(tc => tc.tool.startsWith("set_"))) loadDevices();
+    }
+  } catch (e) {
+    thinking.remove();
+    addMsg("assistant", `Error: ${e.message}`);
+  }
+  busy = false;
+  btnSend.disabled = false;
+  inputEl.focus();
+}
+
+// --- Camera ---
+let cameraOn = false;
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+    video.srcObject = stream;
+    video.style.display = "block";
+    canvas.style.display = "none";
+    cameraOn = true;
+    document.getElementById("btn-cam-toggle").textContent = "Camera Off";
+  } catch (e) {
+    console.log("No camera:", e.message);
+  }
+}
+
+function stopCamera() {
+  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  video.style.display = "none";
+  cameraOn = false;
+  document.getElementById("btn-cam-toggle").textContent = "Camera On";
+}
+
+async function snapAndAsk() {
+  if (!cameraOn) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const b64 = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+  video.style.display = "none";
+  canvas.style.display = "block";
+
+  const prompt = inputEl.value.trim() || "Describe what you see in this image.";
+  inputEl.value = "";
+  addMsg("user", `[Photo] ${prompt}`);
+  const thinking = addMsg("thinking", "");
+  thinking.innerHTML = '<span class="spinner"></span>Analyzing image...';
+
+  try {
+    const resp = await fetch(`${API}/api/analyze`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ image: b64, prompt: prompt })
+    });
+    thinking.remove();
+    const data = await resp.json();
+    addMsg("assistant", data.response);
+
+    // Speak the response
+    if ("speechSynthesis" in window) {
+      const u = new SpeechSynthesisUtterance(data.response.replace(/<[^>]*>/g, "").slice(0, 500));
+      speechSynthesis.speak(u);
+    }
+  } catch (e) {
+    thinking.remove();
+    addMsg("assistant", `Error: ${e.message}`);
+  }
+
+  // Resume camera after a moment
+  setTimeout(() => { video.style.display = "block"; canvas.style.display = "none"; }, 2000);
+}
+
+// --- Devices ---
+
+async function loadDevices() {
+  try {
+    const [lightsResp, sensorsResp] = await Promise.all([
+      fetch(`${API}/api/lights`),
+      fetch(`${API}/api/sensors`)
+    ]);
+    const lights = await lightsResp.json();
+    const sensors = await sensorsResp.json();
+
+    let html = "";
+    for (const l of lights) {
+      html += `<div class="device">
+        <div class="device-name"><span class="dot ${l.is_on ? 'dot-on' : 'dot-off'}"></span>${l.name}</div>
+        <div class="device-info">${l.is_on ? 'On' : 'Off'}${l.light_level != null ? ` · ${l.light_level}%` : ''}</div>
+      </div>`;
+    }
+    for (const s of sensors) {
+      const vals = [];
+      if (s.temperature != null) vals.push(`<span class="sensor-val">${s.temperature.toFixed(1)}°C</span>`);
+      if (s.humidity != null) vals.push(`${s.humidity}% RH`);
+      if (s.co2 != null) vals.push(`CO2: ${s.co2}`);
+      if (s["pm2.5"] != null) vals.push(`PM2.5: ${s["pm2.5"]}`);
+      if (s.voc != null) vals.push(`VOC: ${s.voc}`);
+      if (vals.length > 0) {
+        html += `<div class="device">
+          <div class="device-name">${s.name}</div>
+          <div class="device-info">${vals.join(' · ')}</div>
+        </div>`;
+      }
+    }
+    deviceList.innerHTML = html || '<div class="device"><div class="device-info">No devices</div></div>';
+    statusEl.textContent = "Connected";
+    statusEl.className = "status ok";
+  } catch (e) {
+    deviceList.innerHTML = `<div class="device"><div class="device-info" style="color:var(--red)">Error: ${e.message}</div></div>`;
+    statusEl.textContent = "Disconnected";
+    statusEl.className = "status error";
+  }
+}
+
+// --- Events ---
+
+btnSend.addEventListener("click", () => sendChat(inputEl.value.trim()));
+inputEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); sendChat(inputEl.value.trim()); } });
+document.getElementById("btn-snap").addEventListener("click", snapAndAsk);
+document.getElementById("btn-cam-toggle").addEventListener("click", () => { cameraOn ? stopCamera() : startCamera(); });
+document.getElementById("btn-refresh").addEventListener("click", loadDevices);
+
+// --- Init ---
+loadDevices();
+startCamera();
+setInterval(loadDevices, 30000);
+</script>
+</body>
+</html>

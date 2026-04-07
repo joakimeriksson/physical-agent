@@ -260,11 +260,12 @@ async function authenticate() {
 
 // --- MCP Calls ---
 
-async function mcpCall(method, args) {
-  const mcpUrl = document.getElementById("mcp-url").value.replace(/\/$/, "");
+let mcpSessionId = null;
+let mcpCallId = 0;
 
-  // Initialize session
-  const initResp = await fetch(`${mcpUrl}/mcp`, {
+async function mcpInitSession() {
+  const mcpUrl = document.getElementById("mcp-url").value.replace(/\/$/, "");
+  const resp = await fetch(`${mcpUrl}/mcp`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -272,12 +273,19 @@ async function mcpCall(method, args) {
       "Authorization": `Bearer ${mcpToken}`
     },
     body: JSON.stringify({
-      jsonrpc: "2.0", id: 1, method: "initialize",
+      jsonrpc: "2.0", id: ++mcpCallId, method: "initialize",
       params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "browser-dashboard", version: "1.0" } }
     })
   });
-  const initText = await initResp.text();
-  const sessionId = initResp.headers.get("mcp-session-id");
+  await resp.text();
+  mcpSessionId = resp.headers.get("mcp-session-id");
+}
+
+async function mcpCall(method, args) {
+  const mcpUrl = document.getElementById("mcp-url").value.replace(/\/$/, "");
+
+  // Initialize session if needed
+  if (!mcpSessionId) await mcpInitSession();
 
   // Call tool
   const resp = await fetch(`${mcpUrl}/mcp`, {
@@ -286,13 +294,20 @@ async function mcpCall(method, args) {
       "Content-Type": "application/json",
       "Accept": "application/json, text/event-stream",
       "Authorization": `Bearer ${mcpToken}`,
-      "Mcp-Session-Id": sessionId
+      "Mcp-Session-Id": mcpSessionId
     },
     body: JSON.stringify({
-      jsonrpc: "2.0", id: 2, method: "tools/call",
+      jsonrpc: "2.0", id: ++mcpCallId, method: "tools/call",
       params: { name: method, arguments: args || {} }
     })
   });
+
+  // If session expired, re-init and retry once
+  if (resp.status === 404 || resp.status === 400) {
+    mcpSessionId = null;
+    await mcpInitSession();
+    return mcpCall(method, args);
+  }
 
   const text = await resp.text();
   // Parse SSE data line
@@ -498,7 +513,11 @@ async function chatWithOllama(messages) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.text();
+    try { const e = JSON.parse(errBody); throw new Error(e.error || `Ollama returned ${response.status}`); }
+    catch (parseErr) { if (parseErr.message.includes("Ollama")) throw parseErr; throw new Error(`Ollama returned ${response.status}: ${errBody.slice(0, 200)}`); }
+  }
   return await response.json();
 }
 

@@ -427,7 +427,11 @@ async function analyzeAll(imageBase64) {
     body: JSON.stringify({ model, prompt: COMBINED_PROMPT, images: [imageBase64], stream: false })
   });
 
-  if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.text();
+    try { const e = JSON.parse(errBody); throw new Error(e.error || `Ollama returned ${response.status}`); }
+    catch (parseErr) { if (parseErr.message.includes("Ollama")) throw parseErr; throw new Error(`Ollama returned ${response.status}: ${errBody.slice(0, 200)}`); }
+  }
 
   const text = (await response.json()).response || "";
   const results = [];

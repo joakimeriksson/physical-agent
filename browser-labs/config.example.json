@@ -6,5 +6,5 @@
   "mcp_api_key": "paste-key-here",
 
   "chat_model": "qwen3:4b",
-  "vision_model": "gemma3:4b"
+  "vision_model": "gemma3:latest"
 }
