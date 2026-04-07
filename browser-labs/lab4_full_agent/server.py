@@ -39,7 +39,7 @@ def load_config():
             "mcp_url": "https://dirigera.botbox.se",
             "mcp_api_key": "",
             "chat_model": "qwen3:4b",
-            "vision_model": "gemma3:4b",
+            "vision_model": "gemma3:latest",
         }
 
 # --- MCP Client (handles sessions, JWT, SSE parsing) ---
@@ -140,17 +140,14 @@ async def ollama_chat(messages, tools=None, model=None, images=None):
     if tools:
         payload["tools"] = tools
     if images:
-        # For vision, use /api/generate instead
-        payload = {
-            "model": model or CONFIG.get("vision_model", "gemma3:4b"),
-            "prompt": messages[-1]["content"] if messages else "",
-            "images": images,
-            "stream": False,
-        }
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(f"{url}/api/generate", headers=headers, json=payload)
-            resp.raise_for_status()
-            return {"role": "assistant", "content": resp.json().get("response", "")}
+        # Use /api/chat with multimodal messages for vision
+        payload["model"] = model or CONFIG.get("vision_model", "gemma3:latest")
+        payload.pop("tools", None)
+        # Add images to the last user message
+        for msg in reversed(payload["messages"]):
+            if msg["role"] == "user":
+                msg["images"] = images
+                break
 
     async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(f"{url}/api/chat", headers=headers, json=payload)
@@ -253,11 +250,18 @@ async def api_analyze(request: Request):
     image_b64 = body.get("image", "")
     prompt = body.get("prompt", "Describe what you see in this image.")
 
-    result = await ollama_chat(
-        [{"role": "user", "content": prompt}],
-        images=[image_b64],
-    )
-    return JSONResponse({"response": result.get("content", "")})
+    try:
+        result = await ollama_chat(
+            [{"role": "user", "content": prompt}],
+            images=[image_b64],
+        )
+        content = result.get("content", "")
+        # Strip thinking tags from qwen3/gemma3
+        import re
+        cleaned = re.sub(r"<think>[\s\S]*?</think>\s*", "", content).strip()
+        return JSONResponse({"response": cleaned or content})
+    except Exception as e:
+        return JSONResponse({"response": f"Vision analysis failed: {e}"}, status_code=500)
 
 app = Starlette(routes=[
     Route("/", index),
