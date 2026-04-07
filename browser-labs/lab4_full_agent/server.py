@@ -171,8 +171,26 @@ async def index(request: Request):
     return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 async def api_config(request: Request):
-    """Return non-secret config for the frontend."""
-    return JSONResponse({"chat_model": CONFIG.get("chat_model"), "vision_model": CONFIG.get("vision_model")})
+    """Return config and available models from Ollama."""
+    models = []
+    try:
+        url = CONFIG.get("ollama_url", "").rstrip("/")
+        headers = {}
+        if CONFIG.get("ollama_api_key"):
+            headers["Authorization"] = f"Bearer {CONFIG['ollama_api_key']}"
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{url}/api/tags", headers=headers)
+            resp.raise_for_status()
+            models = [m["name"] for m in resp.json().get("models", [])]
+    except Exception:
+        pass
+    return JSONResponse({
+        "chat_model": CONFIG.get("chat_model"),
+        "vision_model": CONFIG.get("vision_model"),
+        "ollama_url": CONFIG.get("ollama_url"),
+        "mcp_url": CONFIG.get("mcp_url"),
+        "models": models,
+    })
 
 async def api_sensors(request: Request):
     """Get all sensor readings."""
@@ -204,6 +222,7 @@ async def api_chat(request: Request):
     body = await request.json()
     user_message = body.get("message", "")
     history = body.get("history", [])
+    model = body.get("model") or CONFIG.get("chat_model", "qwen3:4b")
 
     messages = [
         {"role": "system", "content": "You are a smart home assistant controlling IKEA Dirigera devices. "
@@ -217,7 +236,7 @@ async def api_chat(request: Request):
 
     # Tool calling loop
     for _ in range(5):  # max 5 rounds
-        result = await ollama_chat(messages, tools=IOT_TOOLS)
+        result = await ollama_chat(messages, tools=IOT_TOOLS, model=model)
 
         if result.get("tool_calls"):
             messages.append(result)

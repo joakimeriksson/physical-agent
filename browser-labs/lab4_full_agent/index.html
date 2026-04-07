@@ -79,7 +79,15 @@
 
 <header>
   <h1>Smart Home Agent</h1>
-  <span class="status" id="status">Connecting...</span>
+  <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+    <label style="color:var(--muted);font-size:0.8rem">Ollama: <span id="cfg-ollama" style="color:var(--text)">-</span></label>
+    <label style="color:var(--muted);font-size:0.8rem">MCP: <span id="cfg-mcp" style="color:var(--text)">-</span></label>
+    <label style="color:var(--muted);font-size:0.8rem">Model:</label>
+    <select id="cfg-model" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.2rem 0.4rem;border-radius:4px;font-size:0.8rem">
+      <option value="">Loading models...</option>
+    </select>
+    <span class="status" id="status">Connecting...</span>
+  </div>
 </header>
 
 <div class="main">
@@ -107,6 +115,9 @@
     <div class="camera-controls">
       <button id="btn-snap" class="primary">Snap + Ask</button>
       <button id="btn-cam-toggle">Camera Off</button>
+    </div>
+    <div style="padding:0.4rem 0.5rem;background:var(--surface);font-size:0.75rem;color:var(--muted);text-align:center">
+      Type a question in chat, then click Snap + Ask
     </div>
   </div>
 </div>
@@ -161,7 +172,7 @@ async function sendChat(text) {
     const resp = await fetch(`${API}/api/chat`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ message: text, history: chatHistory })
+      body: JSON.stringify({ message: text, history: chatHistory, model: document.getElementById("cfg-model").value })
     });
     thinking.remove();
 
@@ -300,6 +311,18 @@ document.getElementById("btn-cam-toggle").addEventListener("click", () => { came
 document.getElementById("btn-refresh").addEventListener("click", loadDevices);
 
 // --- Init ---
+fetch(`${API}/api/config`).then(r => r.json()).then(c => {
+  document.getElementById("cfg-ollama").textContent = c.ollama_url || "-";
+  document.getElementById("cfg-mcp").textContent = c.mcp_url || "-";
+  const sel = document.getElementById("cfg-model");
+  sel.innerHTML = "";
+  for (const m of (c.models || [])) {
+    const opt = document.createElement("option");
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  }
+  if (c.chat_model) sel.value = c.chat_model;
+}).catch(() => {});
 loadDevices();
 startCamera();
 setInterval(loadDevices, 30000);
