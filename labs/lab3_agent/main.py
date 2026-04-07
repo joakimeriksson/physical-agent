@@ -19,6 +19,8 @@ import math
 from datetime import datetime
 
 from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 # --- Agent Setup ---
 
@@ -31,8 +33,11 @@ os.environ.setdefault("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 MODEL_NAME = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 agent = Agent(
-    f"ollama:{MODEL_NAME}",
-    system_prompt=f"""You are a helpful assistant running as model '{MODEL_NAME}' on Ollama.
+    OpenAIModel(
+        MODEL_NAME,
+        provider=OpenAIProvider(base_url="http://localhost:30000/v1", api_key="not-needed"),
+    ),
+    system_prompt=f"""You are a helpful assistant running as model '{MODEL_NAME}' on SGLang.
 You have access to tools - ALWAYS use them when asked about system info, time, files, or calculations.
 NEVER make up information. If you don't know something, say so.
 Be concise.""",

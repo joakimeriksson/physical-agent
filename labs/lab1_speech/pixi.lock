@@ -5,6 +5,8 @@ environments:
     - url: https://conda.anaconda.org/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -126,7 +128,11 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/35/4e40f2fba272a6698d62be2cd21ddc3675edfc1a4b9ddefcc4648f115315/onnxruntime-1.23.2-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
       - pypi: https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl
+<<<<<<< Updated upstream
       - pypi: https://files.pythonhosted.org/packages/8c/92/f37e5111440fc6c6336f42f8dab88afaa545394784dc930f808a68883c48/piper_tts-1.3.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl
+=======
+      - pypi: https://files.pythonhosted.org/packages/a9/cd/e083fe52c04f73f03be865440eb2811845e0ad51221d8d1b9404b6dfcc5b/piper_tts-1.4.0.tar.gz
+>>>>>>> Stashed changes
       - pypi: https://files.pythonhosted.org/packages/cb/28/3bfe2fa5a7b9c46fe7e13c97bda14c895fb10fa2ebf1d0abb90e0cea7ee1/platformdirs-4.5.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/4e/b1/c79468184310de09d75095ed1314b839eb2f72df71097db9d1404a1b2717/protobuf-6.33.5-cp39-abi3-manylinux2014_aarch64.whl
       - pypi: https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl
@@ -273,7 +279,11 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c0/b4/569d298f9fc4d286c11c45e85d9ffa9e877af12ace98af8cab52396e8f46/onnxruntime-1.23.2-cp312-cp312-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl
+<<<<<<< Updated upstream
       - pypi: https://files.pythonhosted.org/packages/10/a5/d782d469fc19db9bf19f1725d4a6ef77d2413515b61f5017340688f5d093/piper_tts-1.3.0-cp39-abi3-win_amd64.whl
+=======
+      - pypi: https://files.pythonhosted.org/packages/a9/cd/e083fe52c04f73f03be865440eb2811845e0ad51221d8d1b9404b6dfcc5b/piper_tts-1.4.0.tar.gz
+>>>>>>> Stashed changes
       - pypi: https://files.pythonhosted.org/packages/cb/28/3bfe2fa5a7b9c46fe7e13c97bda14c895fb10fa2ebf1d0abb90e0cea7ee1/platformdirs-4.5.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/55/75/bb9bc917d10e9ee13dee8607eb9ab963b7cf8be607c46e7862c748aa2af7/protobuf-6.33.5-cp310-abi3-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl
@@ -2073,6 +2083,7 @@ packages:
   purls: []
   size: 1222481
   timestamp: 1763655398280
+<<<<<<< Updated upstream
 - pypi: https://files.pythonhosted.org/packages/10/a5/d782d469fc19db9bf19f1725d4a6ef77d2413515b61f5017340688f5d093/piper_tts-1.3.0-cp39-abi3-win_amd64.whl
   name: piper-tts
   version: 1.3.0
@@ -2100,6 +2111,8 @@ packages:
   - ninja>=1,<2 ; extra == 'dev'
   - flask>=3,<4 ; extra == 'http'
   requires_python: '>=3.9'
+=======
+>>>>>>> Stashed changes
 - pypi: https://files.pythonhosted.org/packages/2b/73/3d29175cfd93e791baaef3335819778d3f8c8898e2fe16cd0cc8b8163f84/piper_tts-1.3.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl
   name: piper-tts
   version: 1.3.0
@@ -2207,6 +2220,39 @@ packages:
   - cmake>=3.18,<4 ; extra == 'dev'
   - ninja>=1,<2 ; extra == 'dev'
   - flask>=3,<4 ; extra == 'http'
+  requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/a9/cd/e083fe52c04f73f03be865440eb2811845e0ad51221d8d1b9404b6dfcc5b/piper_tts-1.4.0.tar.gz
+  name: piper-tts
+  version: 1.4.0
+  sha256: c13a0dd1854b5d14e6ffb101c920619a0b1981c758306a70fc88a8d6929769c9
+  requires_dist:
+  - onnxruntime>=1,<2
+  - torch>=2,<3 ; extra == 'train'
+  - lightning>=2,<3 ; extra == 'train'
+  - tensorboard>=2,<3 ; extra == 'train'
+  - tensorboardx>=2,<3 ; extra == 'train'
+  - jsonargparse[signatures]>=4.27.7 ; extra == 'train'
+  - pathvalidate>=3,<4 ; extra == 'train'
+  - onnx>=1,<2 ; extra == 'train'
+  - pysilero-vad>=2.1,<3 ; extra == 'train'
+  - cython>=3,<4 ; extra == 'train'
+  - librosa<1 ; extra == 'train'
+  - black==24.8.0 ; extra == 'dev'
+  - flake8==7.1.1 ; extra == 'dev'
+  - mypy==1.14.0 ; extra == 'dev'
+  - pylint==3.2.7 ; extra == 'dev'
+  - pytest==8.3.4 ; extra == 'dev'
+  - build==1.2.2 ; extra == 'dev'
+  - scikit-build<1 ; extra == 'dev'
+  - cmake>=3.18,<4 ; extra == 'dev'
+  - ninja>=1,<2 ; extra == 'dev'
+  - flask>=3,<4 ; extra == 'http'
+  - onnx>=1,<2 ; extra == 'alignment'
+  - g2pw>=0.1.1,<1 ; extra == 'zh'
+  - sentence-stream>=1.2.1,<2 ; extra == 'zh'
+  - unicode-rbnf>=2.4.0,<3 ; extra == 'zh'
+  - torch>=2,<3 ; extra == 'zh'
+  - requests>=2,<3 ; extra == 'zh'
   requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/cb/28/3bfe2fa5a7b9c46fe7e13c97bda14c895fb10fa2ebf1d0abb90e0cea7ee1/platformdirs-4.5.1-py3-none-any.whl
   name: platformdirs

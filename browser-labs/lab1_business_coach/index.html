@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Readiness Coach</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* Settings bar */
+  .settings {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .settings label {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .settings input, .settings select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+
+  .settings input:focus, .settings select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Camera area */
+  .camera-container {
+    position: relative;
+    width: 640px;
+    max-width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .camera-container video,
+  .camera-container canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #preview-canvas { display: none; }
+
+  .countdown-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    font-size: 8rem;
+    font-weight: bold;
+    color: var(--green);
+    display: none;
+  }
+
+  .countdown-overlay .message {
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+    color: white;
+  }
+
+  .captured-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: var(--green);
+    color: #000;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: none;
+  }
+
+  /* Buttons */
+  .actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    padding: 0.7rem 1.8rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  #btn-capture {
+    background: var(--accent);
+    color: #000;
+  }
+
+  #btn-retry {
+    background: var(--yellow);
+    color: #000;
+    display: none;
+  }
+
+  /* Status */
+  #status {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    min-height: 1.4rem;
+  }
+
+  /* Results */
+  .results {
+    width: 640px;
+    max-width: 100%;
+    display: none;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .result-aspect {
+    font-weight: 600;
+    text-transform: capitalize;
+    font-size: 1.05rem;
+  }
+
+  .result-score {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+  }
+
+  .score-high { background: rgba(74,222,128,0.15); color: var(--green); }
+  .score-mid  { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .score-low  { background: rgba(248,113,113,0.15); color: var(--red); }
+
+  .result-feedback {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  /* Progress bar for each check */
+  .score-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin-top: 0.6rem;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Summary card */
+  .summary-card {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.2rem;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+
+  .summary-average {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .summary-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-verdict {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Analyzing spinner */
+  .analyzing-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<h1>Business Readiness Coach</h1>
+<p class="subtitle">AI checks your clothing, grooming, background &amp; pose</p>
+
+<div class="settings">
+  <label for="ollama-url">Ollama URL:</label>
+  <input type="text" id="ollama-url" value="http://localhost:11434" size="28">
+  <label for="model-select">Model:</label>
+  <select id="model-select">
+    <option value="gemma3:4b" selected>gemma3:4b</option>
+    <option value="gemma3:12b">gemma3:12b</option>
+    <option value="llava:7b">llava:7b</option>
+    <option value="llava:13b">llava:13b</option>
+  </select>
+  <label><input type="checkbox" id="tts-enabled" checked> Speak results</label>
+</div>
+
+<div class="camera-container">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="preview-canvas"></canvas>
+  <div class="countdown-overlay" id="countdown-overlay">
+    <span id="countdown-number">3</span>
+    <span class="message" id="countdown-message">Strike your best business pose!</span>
+  </div>
+  <div class="captured-badge" id="captured-badge">Captured</div>
+</div>
+
+<div class="actions">
+  <button id="btn-capture">Take Photo &amp; Analyze</button>
+  <button id="btn-retry">Try Again</button>
+</div>
+
+<div id="status"></div>
+
+<div class="results" id="results"></div>
+
+<script>
+const ASPECTS = ["clothing", "grooming", "background", "pose"];
+
+const COMBINED_PROMPT = `You are a business readiness coach. Evaluate this person's readiness for a professional meeting.
+
+Analyze these four aspects:
+1. **Clothing** - Is their attire professional, casual, or too casual? Wrinkles, stains, inappropriate items?
+2. **Grooming** - Is their hair and grooming tidy and presentable?
+3. **Background** - Is the background appropriate for a video call? Any distracting or unprofessional items?
+4. **Pose** - Are they sitting up straight? Do they look confident and approachable?
+
+Respond EXACTLY in this format (no markdown, no extra text):
+CLOTHING_SCORE: [1-10]
+CLOTHING_FEEDBACK: [2-3 sentences]
+GROOMING_SCORE: [1-10]
+GROOMING_FEEDBACK: [2-3 sentences]
+BACKGROUND_SCORE: [1-10]
+BACKGROUND_FEEDBACK: [2-3 sentences]
+POSE_SCORE: [1-10]
+POSE_FEEDBACK: [2-3 sentences]
+
+Keep feedback conversational - it will be spoken aloud.`;
+
+// DOM elements
+const video = document.getElementById("video");
+const previewCanvas = document.getElementById("preview-canvas");
+const countdownOverlay = document.getElementById("countdown-overlay");
+const countdownNumber = document.getElementById("countdown-number");
+const capturedBadge = document.getElementById("captured-badge");
+const btnCapture = document.getElementById("btn-capture");
+const btnRetry = document.getElementById("btn-retry");
+const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById("results");
+
+let stream = null;
+
+// --- Camera ---
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 960 }, facingMode: "user" }
+    });
+    video.srcObject = stream;
+    video.style.display = "block";
+    previewCanvas.style.display = "none";
+    capturedBadge.style.display = "none";
+    setStatus("Camera ready. Click the button to start.");
+  } catch (err) {
+    setStatus("Could not access camera: " + err.message);
+    btnCapture.disabled = true;
+  }
+}
+
+function captureFrame() {
+  const canvas = previewCanvas;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
+  // Show frozen frame
+  video.style.display = "none";
+  canvas.style.display = "block";
+  capturedBadge.style.display = "block";
+
+  return canvas.toDataURL("image/jpeg", 0.9);
+}
+
+function dataURLtoBase64(dataURL) {
+  return dataURL.split(",")[1];
+}
+
+// --- Countdown ---
+
+function countdown(seconds, message) {
+  return new Promise(resolve => {
+    countdownOverlay.style.display = "flex";
+    document.getElementById("countdown-message").textContent = message;
+    let remaining = seconds;
+    countdownNumber.textContent = remaining;
+
+    const interval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        countdownOverlay.style.display = "none";
+        resolve();
+      } else {
+        countdownNumber.textContent = remaining;
+      }
+    }, 1000);
+  });
+}
+
+// --- Ollama VLM ---
+
+async function analyzeAll(imageBase64) {
+  const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const model = document.getElementById("model-select").value;
+
+  const response = await fetch(`${ollamaUrl}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model, prompt: COMBINED_PROMPT, images: [imageBase64], stream: false })
+  });
+
+  if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+
+  const text = (await response.json()).response || "";
+  const results = [];
+
+  for (const aspect of ASPECTS) {
+    const key = aspect.toUpperCase();
+    const scoreMatch = text.match(new RegExp(`${key}_SCORE:\\s*(\\d+)`));
+    const feedbackMatch = text.match(new RegExp(`${key}_FEEDBACK:\\s*(.+?)(?=\\n[A-Z]+_|$)`, "s"));
+    results.push({
+      id: aspect,
+      score: scoreMatch ? Math.min(10, Math.max(1, parseInt(scoreMatch[1], 10))) : 5,
+      feedback: feedbackMatch ? feedbackMatch[1].trim() : "Could not parse feedback."
+    });
+  }
+
+  return results;
+}
+
+// --- TTS ---
+
+function speak(text) {
+  if (!document.getElementById("tts-enabled").checked) return;
+  if (!("speechSynthesis" in window)) return;
+
+  // Clean text for speech
+  text = text.replace(/[*#`_]/g, "").replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  speechSynthesis.speak(utterance);
+}
+
+function stopSpeech() {
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+}
+
+// --- UI Helpers ---
+
+function setStatus(msg) {
+  statusEl.textContent = msg;
+}
+
+function scoreClass(score) {
+  if (score >= 7) return "score-high";
+  if (score >= 5) return "score-mid";
+  return "score-low";
+}
+
+function scoreColor(score) {
+  if (score >= 7) return "var(--green)";
+  if (score >= 5) return "var(--yellow)";
+  return "var(--red)";
+}
+
+function renderAnalyzingCard() {
+  return `<div class="analyzing-card" id="card-analyzing">
+    <div class="spinner"></div>
+    <span>Analyzing your photo...</span>
+  </div>`;
+}
+
+function renderResultCard(id, score, feedback) {
+  return `<div class="result-card">
+    <div class="result-header">
+      <span class="result-aspect">${id}</span>
+      <span class="result-score ${scoreClass(score)}">${score}/10</span>
+    </div>
+    <div class="result-feedback">${feedback}</div>
+    <div class="score-bar">
+      <div class="score-bar-fill" style="width:${score * 10}%; background:${scoreColor(score)}"></div>
+    </div>
+  </div>`;
+}
+
+function renderSummary(results) {
+  const total = results.reduce((sum, r) => sum + r.score, 0);
+  const average = total / results.length;
+
+  let verdict;
+  if (average >= 8) verdict = "Excellent! You're totally ready for that meeting. Go get them!";
+  else if (average >= 6) verdict = "Pretty good! A few small tweaks and you'll be perfect.";
+  else if (average >= 4) verdict = "Some room for improvement. Consider the feedback above.";
+  else verdict = "Hmm, might want to do a bit more preparation before that meeting.";
+
+  return `<div class="summary-card">
+    <div class="summary-label">AVERAGE SCORE</div>
+    <div class="summary-average">${average.toFixed(1)}/10</div>
+    <div class="summary-verdict">${verdict}</div>
+  </div>`;
+}
+
+// --- Main Flow ---
+
+async function runAnalysis() {
+  btnCapture.disabled = true;
+  btnRetry.style.display = "none";
+  resultsEl.style.display = "none";
+  resultsEl.innerHTML = "";
+  stopSpeech();
+
+  speak("Get ready! I'll take your photo and evaluate you.");
+
+  await countdown(3, "Strike your best business pose!");
+
+  const dataURL = captureFrame();
+  const imageBase64 = dataURLtoBase64(dataURL);
+
+  setStatus("Analyzing your photo...");
+  resultsEl.style.display = "block";
+  resultsEl.innerHTML = renderAnalyzingCard();
+
+  let results;
+  try {
+    results = await analyzeAll(imageBase64);
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="result-card"><div class="result-feedback">Analysis failed: ${err.message}</div></div>`;
+    setStatus("Error - check Ollama connection");
+    btnRetry.style.display = "inline-block";
+    btnCapture.disabled = false;
+    return;
+  }
+
+  // Render all results
+  resultsEl.innerHTML = results.map(r => renderResultCard(r.id, r.score, r.feedback)).join("");
+
+  for (const r of results) {
+    speak(`For ${r.id}, I give you ${r.score} out of 10. ${r.feedback}`);
+  }
+
+  // Summary
+  resultsEl.innerHTML += renderSummary(results);
+
+  const average = results.reduce((sum, r) => sum + r.score, 0) / results.length;
+  let verdict;
+  if (average >= 8) verdict = "Excellent! You're totally ready for that meeting. Go get them!";
+  else if (average >= 6) verdict = "Pretty good! A few small tweaks and you'll be perfect.";
+  else if (average >= 4) verdict = "Some room for improvement. Consider the feedback I gave you.";
+  else verdict = "Hmm, might want to do a bit more preparation before that meeting.";
+
+  speak(`Your average score is ${average.toFixed(1)} out of 10. ${verdict}`);
+
+  const lowScores = results.filter(r => r.score < 7);
+  setStatus("Done! " + (lowScores.length > 0 ? "Some areas could be improved - try again?" : "Looking great!"));
+
+  btnRetry.style.display = "inline-block";
+  btnCapture.disabled = false;
+}
+
+async function retry() {
+  stopSpeech();
+  speak("Okay, make your adjustments and let's try again!");
+  await startCamera();
+  resultsEl.style.display = "none";
+  resultsEl.innerHTML = "";
+  btnRetry.style.display = "none";
+}
+
+// --- Event listeners ---
+
+btnCapture.addEventListener("click", runAnalysis);
+btnRetry.addEventListener("click", retry);
+
+// --- Init ---
+
+speak("Hello! I'm your business readiness coach. Let's check if you're ready for your meeting.");
+startCamera();
+</script>
+</body>
+</html>
