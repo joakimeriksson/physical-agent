@@ -1,34 +1,40 @@
 # Browser Labs
 
-Browser-based versions of the physical agent labs. These run entirely in the browser — no Python, no package manager, no driver installations needed.
+Browser-based labs for the hackathon. No Python, no package manager, no installations needed — just a browser.
 
-## Prerequisites
-
-- **Ollama** running with CORS enabled:
-  ```bash
-  OLLAMA_ORIGINS="*" ollama serve
-  ```
-- A webcam (accessed via browser `getUserMedia`)
-
-## Labs
-
-| Lab | Description | Devices |
-|-----|-------------|---------|
-| [lab1_business_coach](lab1_business_coach/) | Business Readiness Coach — AI evaluates your meeting readiness | Camera, Ollama VLM, Browser TTS |
-
-## Running
+## Setup
 
 Serve the files with any static HTTP server:
 
 ```bash
-# Python
 cd browser-labs
 python -m http.server 8080
-
-# Node
-npx serve browser-labs
 ```
 
-Then open `http://localhost:8080/lab1_business_coach/` in your browser.
+Then open `http://localhost:8080/` in your browser.
 
 > **Note:** Opening `index.html` directly as a `file://` URL won't work because `getUserMedia` requires a secure context (HTTPS or localhost).
+
+## Configuration
+
+All labs have a settings bar where you enter:
+- **Ollama URL**: `https://ollama.botbox.se` (provided by instructor)
+- **API Key**: Shared key shown on projector
+
+The IoT dashboard also needs:
+- **MCP Server URL**: `https://dirigera.botbox.se`
+- **MCP API Key**: Shown on projector
+
+## Labs
+
+| Lab | Description | Requires |
+|-----|-------------|----------|
+| [lab1_business_coach](lab1_business_coach/) | AI evaluates your meeting readiness | Webcam, Ollama VLM |
+| [lab2_chat_agent](lab2_chat_agent/) | Chat with an AI that calls tools (calculator, time, dice) | Ollama |
+| [lab3_iot_dashboard](lab3_iot_dashboard/) | Control IKEA smart home devices with natural language | Ollama + Dirigera MCP |
+
+## Suggested Order
+
+1. **lab2_chat_agent** — Start here. Chat with AI, see tool calling in action.
+2. **lab1_business_coach** — Fun demo with webcam. Needs a vision model (gemma3).
+3. **lab3_iot_dashboard** — The main event. Control real IKEA devices!

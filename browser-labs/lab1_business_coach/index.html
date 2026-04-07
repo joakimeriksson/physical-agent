@@ -286,13 +286,13 @@
 
 <div class="settings">
   <label for="ollama-url">Ollama URL:</label>
-  <input type="text" id="ollama-url" value="http://localhost:11434" size="28">
+  <input type="text" id="ollama-url" value="https://ollama.botbox.se" size="28">
+  <label for="api-key">API Key:</label>
+  <input type="password" id="api-key" value="" size="16" placeholder="paste key">
   <label for="model-select">Model:</label>
   <select id="model-select">
     <option value="gemma3:4b" selected>gemma3:4b</option>
     <option value="gemma3:12b">gemma3:12b</option>
-    <option value="llava:7b">llava:7b</option>
-    <option value="llava:13b">llava:13b</option>
   </select>
   <label><input type="checkbox" id="tts-enabled" checked> Speak results</label>
 </div>
@@ -417,9 +417,13 @@ async function analyzeAll(imageBase64) {
   const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
   const model = document.getElementById("model-select").value;
 
+  const headers = { "Content-Type": "application/json" };
+  const apiKey = document.getElementById("api-key").value;
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
   const response = await fetch(`${ollamaUrl}/api/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify({ model, prompt: COMBINED_PROMPT, images: [imageBase64], stream: false })
   });
 
@@ -588,6 +592,13 @@ btnCapture.addEventListener("click", runAnalysis);
 btnRetry.addEventListener("click", retry);
 
 // --- Init ---
+
+// Load defaults from shared config
+fetch("../config.json").then(r => r.json()).then(c => {
+  if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url;
+  if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
+  if (c.vision_model) document.getElementById("model-select").value = c.vision_model;
+}).catch(() => {});
 
 speak("Hello! I'm your business readiness coach. Let's check if you're ready for your meeting.");
 startCamera();

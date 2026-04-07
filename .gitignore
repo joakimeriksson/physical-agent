@@ -34,4 +34,7 @@ pptx_extracted/
 # Env files
 .env
 .env.local
+
+# Config with secrets
+browser-labs/config.json
 experimental/

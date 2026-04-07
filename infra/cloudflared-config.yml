@@ -1,0 +1,12 @@
+# Cloudflare Tunnel config template
+# Copy to ~/.cloudflared/config.yml and update tunnel ID + credentials path
+#
+# tunnel: <your-tunnel-id>
+# credentials-file: /home/<user>/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: dirigera.botbox.se
+    service: http://localhost:8000
+  - hostname: ollama.botbox.se
+    service: http://localhost:11435   # ollama_proxy.py, NOT raw Ollama
+  - service: http_status:404

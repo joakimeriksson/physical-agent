@@ -1,0 +1,10 @@
+{
+  "ollama_url": "https://ollama.botbox.se",
+  "ollama_api_key": "paste-key-here",
+
+  "mcp_url": "https://dirigera.botbox.se",
+  "mcp_api_key": "paste-key-here",
+
+  "chat_model": "qwen3:4b",
+  "vision_model": "gemma3:4b"
+}

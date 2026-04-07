@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IoT Smart Home Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --tool-bg: #172554;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.4rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; }
+
+  .settings {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    background: var(--surface);
+  }
+  .settings label { color: var(--muted); font-size: 0.8rem; }
+  .settings input, .settings select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.35rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+  }
+  .settings input:focus, .settings select:focus { outline: none; border-color: var(--accent); }
+  .settings button {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.35rem 0.8rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .settings button:disabled { opacity: 0.4; }
+  #auth-status { font-size: 0.8rem; }
+  .auth-ok { color: var(--green); }
+  .auth-fail { color: var(--red); }
+
+  .main-content { display: flex; flex: 1; overflow: hidden; }
+
+  /* Devices panel */
+  .devices-panel {
+    width: 320px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .device-card {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .device-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .device-detail {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .device-status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+  }
+  .status-on { background: var(--green); }
+  .status-off { background: var(--red); }
+
+  .sensor-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Chat panel */
+  .chat-panel { flex: 1; display: flex; flex-direction: column; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .message {
+    max-width: 85%;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .message.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 3px; }
+  .message.assistant { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .message.tool-call {
+    background: var(--tool-bg);
+    border: 1px solid #1e40af;
+    align-self: flex-start;
+    font-family: monospace;
+    font-size: 0.8rem;
+    max-width: 90%;
+  }
+  .tool-label { color: var(--yellow); font-weight: 600; font-size: 0.75rem; margin-bottom: 0.3rem; text-transform: uppercase; }
+  .message.thinking { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; color: var(--muted); font-style: italic; }
+
+  .spinner-inline {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 0.5rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .input-area {
+    display: flex; gap: 0.5rem; padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border); background: var(--surface);
+  }
+  .input-area input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 0.7rem 1rem; border-radius: 8px; font-size: 0.95rem;
+  }
+  .input-area input:focus { outline: none; border-color: var(--accent); }
+  .input-area button {
+    background: var(--accent); color: #000; border: none;
+    padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;
+  }
+  .input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  @media (max-width: 768px) {
+    .devices-panel { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-content { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IoT Smart Home Dashboard</h1>
+  <p class="subtitle">Control IKEA smart home devices with natural language</p>
+</header>
+
+<div class="settings">
+  <label for="mcp-url">MCP Server:</label>
+  <input type="text" id="mcp-url" value="https://dirigera.botbox.se" size="28">
+  <label for="mcp-api-key">MCP API Key:</label>
+  <input type="password" id="mcp-api-key" value="" size="18" placeholder="paste key">
+  <label for="ollama-url">Ollama:</label>
+  <input type="text" id="ollama-url" value="https://ollama.botbox.se" size="22">
+  <label for="ollama-api-key">Ollama Key:</label>
+  <input type="password" id="ollama-api-key" value="" size="14" placeholder="paste key">
+  <button id="btn-connect">Connect</button>
+  <span id="auth-status"></span>
+</div>
+
+<div class="main-content">
+  <div class="devices-panel">
+    <div class="panel-header">Devices & Sensors</div>
+    <div id="devices-list">
+      <div class="device-card"><div class="device-detail">Click Connect to load devices...</div></div>
+    </div>
+  </div>
+
+  <div class="chat-panel">
+    <div class="messages" id="messages">
+      <div class="message assistant">Hi! I can control your IKEA smart home. Try: "What lights are available?", "Turn on the lamp", or "What's the temperature?"</div>
+    </div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="e.g. 'Turn on Lampa Soffa' or 'What is the temperature?'" autofocus>
+      <button id="btn-send" disabled>Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- MCP Auth ---
+
+let mcpToken = null;
+
+async function authenticate() {
+  const mcpUrl = document.getElementById("mcp-url").value.replace(/\/$/, "");
+  const apiKey = document.getElementById("mcp-api-key").value;
+  const statusEl = document.getElementById("auth-status");
+
+  if (!apiKey) {
+    statusEl.textContent = "Enter API key";
+    statusEl.className = "auth-fail";
+    return false;
+  }
+
+  try {
+    const resp = await fetch(`${mcpUrl}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey })
+    });
+    if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
+    const data = await resp.json();
+    mcpToken = data.token;
+    statusEl.textContent = "Connected";
+    statusEl.className = "auth-ok";
+    document.getElementById("btn-send").disabled = false;
+    return true;
+  } catch (e) {
+    statusEl.textContent = "Auth failed: " + e.message;
+    statusEl.className = "auth-fail";
+    mcpToken = null;
+    return false;
+  }
+}
+
+// --- MCP Calls ---
+
+async function mcpCall(method, args) {
+  const mcpUrl = document.getElementById("mcp-url").value.replace(/\/$/, "");
+
+  // Initialize session
+  const initResp = await fetch(`${mcpUrl}/mcp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
+      "Authorization": `Bearer ${mcpToken}`
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0", id: 1, method: "initialize",
+      params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "browser-dashboard", version: "1.0" } }
+    })
+  });
+  const initText = await initResp.text();
+  const sessionId = initResp.headers.get("mcp-session-id");
+
+  // Call tool
+  const resp = await fetch(`${mcpUrl}/mcp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
+      "Authorization": `Bearer ${mcpToken}`,
+      "Mcp-Session-Id": sessionId
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0", id: 2, method: "tools/call",
+      params: { name: method, arguments: args || {} }
+    })
+  });
+
+  const text = await resp.text();
+  // Parse SSE data line
+  const dataMatch = text.match(/^data: (.+)$/m);
+  if (dataMatch) {
+    const parsed = JSON.parse(dataMatch[1]);
+    if (parsed.result && parsed.result.structuredContent) {
+      return parsed.result.structuredContent.result;
+    }
+    if (parsed.result && parsed.result.content) {
+      return JSON.parse(parsed.result.content[0].text);
+    }
+  }
+  throw new Error("Unexpected MCP response");
+}
+
+// --- Device Display ---
+
+async function loadDevices() {
+  const listEl = document.getElementById("devices-list");
+  listEl.innerHTML = '<div class="device-card"><div class="device-detail">Loading...</div></div>';
+
+  try {
+    const [lights, sensors] = await Promise.all([
+      mcpCall("get_lights"),
+      mcpCall("get_environment_sensors")
+    ]);
+
+    let html = "";
+
+    // Lights
+    for (const light of lights) {
+      html += `<div class="device-card">
+        <div class="device-name">
+          <span class="device-status ${light.is_on ? 'status-on' : 'status-off'}"></span>
+          ${light.name}
+        </div>
+        <div class="device-detail">
+          ${light.is_on ? 'On' : 'Off'}${light.light_level != null ? ` | Brightness: ${light.light_level}%` : ''}
+        </div>
+      </div>`;
+    }
+
+    // Sensors
+    for (const sensor of sensors) {
+      const values = [];
+      if (sensor.temperature != null) values.push(`${sensor.temperature.toFixed(1)}°C`);
+      if (sensor.humidity != null) values.push(`${sensor.humidity}% RH`);
+      if (sensor.co2 != null) values.push(`CO2: ${sensor.co2} ppm`);
+      if (sensor["pm2.5"] != null) values.push(`PM2.5: ${sensor["pm2.5"]}`);
+      if (sensor.voc != null) values.push(`VOC: ${sensor.voc}`);
+
+      if (values.length > 0) {
+        html += `<div class="device-card">
+          <div class="device-name">${sensor.name}</div>
+          <div class="device-detail"><span class="sensor-value">${values[0]}</span></div>
+          <div class="device-detail">${values.slice(1).join(' | ')}</div>
+        </div>`;
+      }
+    }
+
+    listEl.innerHTML = html || '<div class="device-card"><div class="device-detail">No devices found</div></div>';
+  } catch (e) {
+    listEl.innerHTML = `<div class="device-card"><div class="device-detail" style="color:var(--red)">Error: ${e.message}</div></div>`;
+  }
+}
+
+// Auto-refresh devices every 15 seconds
+let refreshInterval = null;
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadDevices, 15000);
+}
+
+// --- Ollama Chat with IoT Tools ---
+
+const IOT_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "get_lights",
+      description: "List all smart lights with their current status (on/off, brightness, color).",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_environment_sensors",
+      description: "List all environment sensors with temperature, humidity, CO2, PM2.5, VOC readings.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_outlets",
+      description: "List all power outlets with their power consumption data.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_onoff",
+      description: "Turn a light or outlet on or off by name.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Device name, e.g. 'Lampa Soffa'" },
+          is_on: { type: "boolean", description: "true to turn on, false to turn off" }
+        },
+        required: ["name", "is_on"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_light_level",
+      description: "Set brightness of a light by name (0-100).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Light name" },
+          light_level: { type: "integer", description: "Brightness level 0-100" }
+        },
+        required: ["name", "light_level"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_light_color",
+      description: "Set color of a light by name using hue and saturation.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Light name" },
+          color_hue: { type: "number", description: "Hue 0-360 (0=red, 120=green, 240=blue)" },
+          color_saturation: { type: "number", description: "Saturation 0.0-1.0" }
+        },
+        required: ["name", "color_hue", "color_saturation"]
+      }
+    }
+  }
+];
+
+let conversationHistory = [];
+let isGenerating = false;
+
+const messagesEl = document.getElementById("messages");
+const userInput = document.getElementById("user-input");
+const btnSend = document.getElementById("btn-send");
+
+function addMessage(role, content, extraClass) {
+  const div = document.createElement("div");
+  div.className = `message ${extraClass || role}`;
+  div.textContent = content;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+
+function addToolCallMessage(toolName, args, result) {
+  const div = document.createElement("div");
+  div.className = "message tool-call";
+  const resultStr = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const shortResult = resultStr.length > 200 ? resultStr.substring(0, 200) + "..." : resultStr;
+  div.innerHTML = `<div class="tool-label">Tool: ${toolName}</div>` +
+    `Args: ${JSON.stringify(args)}\nResult: ${shortResult}`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function executeIoTTool(name, args) {
+  try {
+    const result = await mcpCall(name, args);
+    return JSON.stringify(result);
+  } catch (e) {
+    return JSON.stringify({ error: e.message });
+  }
+}
+
+async function chatWithOllama(messages) {
+  const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const ollamaKey = document.getElementById("ollama-api-key").value;
+
+  const payload = {
+    model: "qwen3:4b",
+    messages: messages,
+    tools: IOT_TOOLS,
+    stream: false
+  };
+
+  const headers = { "Content-Type": "application/json" };
+  if (ollamaKey) headers["Authorization"] = `Bearer ${ollamaKey}`;
+
+  const response = await fetch(`${ollamaUrl}/api/chat`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+  return await response.json();
+}
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || isGenerating) return;
+
+  isGenerating = true;
+  btnSend.disabled = true;
+  userInput.value = "";
+
+  addMessage("user", text);
+  conversationHistory.push({ role: "user", content: text });
+
+  const thinkingEl = addMessage("assistant", "", "thinking");
+  thinkingEl.innerHTML = '<span class="spinner-inline"></span>Thinking...';
+
+  try {
+    let result = await chatWithOllama([
+      { role: "system", content: "You are a smart home assistant controlling IKEA Dirigera devices. Use your tools to list and control lights, outlets, and sensors. Always list devices first before trying to control them. Be concise." },
+      ...conversationHistory
+    ]);
+    thinkingEl.remove();
+
+    // Tool call loop
+    while (result.message?.tool_calls?.length > 0) {
+      conversationHistory.push(result.message);
+
+      for (const tc of result.message.tool_calls) {
+        const toolName = tc.function.name;
+        const toolArgs = tc.function.arguments || {};
+
+        const thinkingEl2 = addMessage("assistant", "", "thinking");
+        thinkingEl2.innerHTML = `<span class="spinner-inline"></span>Calling ${toolName}...`;
+
+        const toolResult = await executeIoTTool(toolName, toolArgs);
+        thinkingEl2.remove();
+
+        addToolCallMessage(toolName, toolArgs, toolResult);
+        conversationHistory.push({ role: "tool", content: toolResult });
+      }
+
+      // Refresh device panel after any IoT action
+      loadDevices();
+
+      const thinkingEl3 = addMessage("assistant", "", "thinking");
+      thinkingEl3.innerHTML = '<span class="spinner-inline"></span>Processing...';
+      result = await chatWithOllama([
+        { role: "system", content: "You are a smart home assistant controlling IKEA Dirigera devices. Use your tools to list and control lights, outlets, and sensors. Always list devices first before trying to control them. Be concise." },
+        ...conversationHistory
+      ]);
+      thinkingEl3.remove();
+    }
+
+    const content = result.message?.content || "(no response)";
+    const cleaned = content.replace(/<think>[\s\S]*?<\/think>\s*/g, "").trim();
+    addMessage("assistant", cleaned || content);
+    conversationHistory.push({ role: "assistant", content: content });
+
+  } catch (err) {
+    thinkingEl.remove();
+    addMessage("assistant", `Error: ${err.message}`);
+  }
+
+  isGenerating = false;
+  btnSend.disabled = false;
+  userInput.focus();
+}
+
+// --- Event listeners ---
+
+document.getElementById("btn-connect").addEventListener("click", async () => {
+  const ok = await authenticate();
+  if (ok) {
+    await loadDevices();
+    startAutoRefresh();
+  }
+});
+
+btnSend.addEventListener("click", sendMessage);
+userInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// Load defaults from shared config
+fetch("../config.json").then(r => r.json()).then(c => {
+  if (c.mcp_url) document.getElementById("mcp-url").value = c.mcp_url;
+  if (c.mcp_api_key) document.getElementById("mcp-api-key").value = c.mcp_api_key;
+  if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url;
+  if (c.ollama_api_key) document.getElementById("ollama-api-key").value = c.ollama_api_key;
+}).catch(() => {});
+</script>
+</body>
+</html>
