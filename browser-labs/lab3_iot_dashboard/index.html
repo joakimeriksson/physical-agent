@@ -595,6 +595,7 @@ async function sendMessage() {
 // --- Event listeners ---
 
 document.getElementById("btn-connect").addEventListener("click", async () => {
+  loadModels();
   const ok = await authenticate();
   if (ok) {
     await loadDevices();

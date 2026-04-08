@@ -1,15 +1,33 @@
 #!/usr/bin/env bash
 # Start all hackathon infrastructure services.
-# Usage: ./start.sh
+# Usage: ./start.sh          # foreground (Ctrl+C stops everything)
+#        ./start.sh -d       # daemon mode (survives logout, use stop.sh to stop)
 #
 # Reads config from .env (create from .env.example).
-# Ctrl+C stops everything.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
 ENV_FILE="$SCRIPT_DIR/.env"
+PID_FILE="$SCRIPT_DIR/infra.pid"
+
+# --- Daemon mode: re-exec detached ---
+if [[ "${1:-}" == "-d" || "${1:-}" == "--daemon" ]]; then
+    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo "Already running (pid $(cat "$PID_FILE")). Use ./stop.sh first."
+        exit 1
+    fi
+    nohup setsid "$0" --_daemonized > "$LOG_DIR/start.log" 2>&1 &
+    mkdir -p "$LOG_DIR"
+    echo $! > "$PID_FILE"
+    echo "Started in daemon mode (pid $!, log: $LOG_DIR/start.log)"
+    echo "Stop with: ./stop.sh"
+    exit 0
+fi
+
+# Strip internal flag so the rest of the script runs normally
+if [[ "${1:-}" == "--_daemonized" ]]; then shift; fi
 
 # --- Load config ---
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -47,6 +65,7 @@ cleanup() {
         kill "$pid" 2>/dev/null || true
     done
     wait 2>/dev/null
+    rm -f "$PID_FILE"
     echo "All services stopped."
 }
 trap cleanup EXIT INT TERM
@@ -119,7 +138,11 @@ echo "  tail -f $LOG_DIR/ollama-proxy.log"
 echo "  tail -f $LOG_DIR/dirigera-mcp.log"
 echo "  tail -f $LOG_DIR/cloudflared.log"
 echo ""
-echo "Press Ctrl+C to stop all services."
+
+# Write PID file for stop.sh (covers both foreground and daemon mode)
+echo $$ > "$PID_FILE"
+
+echo "Press Ctrl+C to stop all services (or ./stop.sh if running as daemon)."
 
 # Wait for any child to exit — if one crashes, report it
 while true; do
