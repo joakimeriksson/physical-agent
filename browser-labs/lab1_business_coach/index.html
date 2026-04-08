@@ -606,14 +606,46 @@ btnRetry.addEventListener("click", retry);
 
 // --- Init ---
 
-// Load defaults from shared config
-fetch("../config.json").then(r => r.json()).then(c => {
-  if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
-  else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
-  if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
-  else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
-  loadModels(c.vision_model);
-}).catch(() => {});
+// --- Settings persistence (localStorage) ---
+const STORAGE_KEY = "lab1_settings";
+const SETTING_IDS = ["ollama-url", "api-key", "model-select"];
+
+function saveSettings() {
+  const data = {};
+  for (const id of SETTING_IDS) data[id] = document.getElementById(id).value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function restoreSettings() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!data) return false;
+    for (const id of SETTING_IDS) {
+      if (data[id] !== undefined) document.getElementById(id).value = data[id];
+    }
+    return true;
+  } catch { return false; }
+}
+
+for (const id of SETTING_IDS) {
+  document.getElementById(id).addEventListener("change", saveSettings);
+}
+document.getElementById("ollama-url").addEventListener("change", () => loadModels());
+document.getElementById("api-key").addEventListener("change", () => loadModels());
+
+// Load from localStorage, fall back to config.json
+const hadSaved = restoreSettings();
+if (hadSaved) {
+  loadModels(localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY))["model-select"] : null);
+} else {
+  fetch("../config.json").then(r => r.json()).then(c => {
+    if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
+    else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
+    if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
+    else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
+    loadModels(c.vision_model);
+  }).catch(() => {});
+}
 
 async function loadModels(defaultModel) {
   const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
@@ -635,6 +667,7 @@ async function loadModels(defaultModel) {
   } catch (e) {
     sel.innerHTML = '<option value="gemma3:latest">gemma3:latest</option>';
   }
+  saveSettings();
 }
 
 speak("Hello! I'm your business readiness coach. Let's check if you're ready for your meeting.");

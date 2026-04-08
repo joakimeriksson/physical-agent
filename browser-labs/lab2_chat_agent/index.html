@@ -512,14 +512,46 @@ document.getElementById("btn-clear-debug").addEventListener("click", () => {
   debugLog.innerHTML = "";
 });
 
-// Load defaults from shared config
-fetch("../config.json").then(r => r.json()).then(c => {
-  if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
-  else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
-  if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
-  else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
-  loadModels(c.chat_model);
-}).catch(() => {});
+// --- Settings persistence (localStorage) ---
+const STORAGE_KEY = "lab2_settings";
+const SETTING_IDS = ["ollama-url", "api-key", "model-select"];
+
+function saveSettings() {
+  const data = {};
+  for (const id of SETTING_IDS) data[id] = document.getElementById(id).value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function restoreSettings() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!data) return false;
+    for (const id of SETTING_IDS) {
+      if (data[id] !== undefined) document.getElementById(id).value = data[id];
+    }
+    return true;
+  } catch { return false; }
+}
+
+for (const id of SETTING_IDS) {
+  document.getElementById(id).addEventListener("change", saveSettings);
+}
+document.getElementById("ollama-url").addEventListener("change", () => loadModels());
+document.getElementById("api-key").addEventListener("change", () => loadModels());
+
+// Load from localStorage, fall back to config.json
+const hadSaved = restoreSettings();
+if (hadSaved) {
+  loadModels(JSON.parse(localStorage.getItem(STORAGE_KEY))["model-select"]);
+} else {
+  fetch("../config.json").then(r => r.json()).then(c => {
+    if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
+    else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
+    if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
+    else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
+    loadModels(c.chat_model);
+  }).catch(() => {});
+}
 
 async function loadModels(defaultModel) {
   const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
@@ -541,6 +573,7 @@ async function loadModels(defaultModel) {
   } catch (e) {
     sel.innerHTML = '<option value="qwen3:4b">qwen3:4b</option>';
   }
+  saveSettings();
 }
 </script>
 </body>
