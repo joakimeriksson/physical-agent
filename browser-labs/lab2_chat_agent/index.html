@@ -252,15 +252,13 @@
 </header>
 
 <div class="settings">
-  <label for="ollama-url">Ollama URL:</label>
-  <input type="text" id="ollama-url" value="https://ollama.botbox.se" size="28">
+  <label for="ollama-url">LLM URL:</label>
+  <input type="text" id="ollama-url" value="https://ollama.botbox.se/v1" size="28">
   <label for="api-key">API Key:</label>
   <input type="password" id="api-key" value="" size="20" placeholder="paste key here">
   <label for="model-select">Model:</label>
   <select id="model-select">
-    <option value="qwen3:4b" selected>qwen3:4b</option>
-    <option value="qwen3:14b">qwen3:14b (slower)</option>
-    <option value="qwen2.5:7b">qwen2.5:7b</option>
+    <option value="">Loading models...</option>
   </select>
 </div>
 
@@ -399,10 +397,10 @@ function addDebugEntry(label, labelClass, content) {
   debugLog.scrollTop = debugLog.scrollHeight;
 }
 
-// --- Ollama API ---
+// --- LLM API (OpenAI-compatible) ---
 
-async function chatWithOllama(messages) {
-  const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+async function chatWithLLM(messages) {
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
   const apiKey = document.getElementById("api-key").value;
   const model = document.getElementById("model-select").value;
 
@@ -410,7 +408,6 @@ async function chatWithOllama(messages) {
     model: model,
     messages: messages,
     tools: TOOLS,
-    stream: false
   };
 
   addDebugEntry("Request", "request", payload);
@@ -418,7 +415,7 @@ async function chatWithOllama(messages) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-  const response = await fetch(`${ollamaUrl}/api/chat`, {
+  const response = await fetch(`${llmUrl}/chat/completions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(payload)
@@ -426,12 +423,13 @@ async function chatWithOllama(messages) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Ollama returned ${response.status}: ${text}`);
+    throw new Error(`LLM returned ${response.status}: ${text}`);
   }
 
   const result = await response.json();
   addDebugEntry("Response", "response", result);
-  return result;
+  // Normalize to { message: ... } for compatibility
+  return { message: result.choices[0].message };
 }
 
 // --- Main chat loop ---
@@ -451,7 +449,7 @@ async function sendMessage() {
   thinkingEl.innerHTML = '<span class="spinner-inline"></span>Thinking...';
 
   try {
-    let result = await chatWithOllama(conversationHistory);
+    let result = await chatWithLLM(conversationHistory);
     thinkingEl.remove();
 
     // Handle tool call loop (LLM may call tools, then we feed results back)
@@ -462,7 +460,8 @@ async function sendMessage() {
       // Execute each tool call
       for (const tc of result.message.tool_calls) {
         const toolName = tc.function.name;
-        const toolArgs = tc.function.arguments || {};
+        const toolArgs = typeof tc.function.arguments === "string"
+          ? JSON.parse(tc.function.arguments) : tc.function.arguments || {};
 
         addDebugEntry(`Tool Call: ${toolName}`, "tool", toolArgs);
 
@@ -472,14 +471,14 @@ async function sendMessage() {
         addDebugEntry(`Tool Result: ${toolName}`, "tool", toolResult);
 
         // Add tool result to conversation
-        conversationHistory.push({ role: "tool", content: toolResult });
+        conversationHistory.push({ role: "tool", content: toolResult, tool_call_id: tc.id || toolName });
       }
 
       // Send back to LLM with tool results
       const thinkingEl2 = addMessage("assistant", "", "thinking");
       thinkingEl2.innerHTML = '<span class="spinner-inline"></span>Processing tool results...';
 
-      result = await chatWithOllama(conversationHistory);
+      result = await chatWithLLM(conversationHistory);
       thinkingEl2.remove();
     }
 
@@ -515,10 +514,34 @@ document.getElementById("btn-clear-debug").addEventListener("click", () => {
 
 // Load defaults from shared config
 fetch("../config.json").then(r => r.json()).then(c => {
-  if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url;
-  if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
-  if (c.chat_model) document.getElementById("model-select").value = c.chat_model;
+  if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
+  else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
+  if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
+  else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
+  loadModels(c.chat_model);
 }).catch(() => {});
+
+async function loadModels(defaultModel) {
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const apiKey = document.getElementById("api-key").value;
+  const sel = document.getElementById("model-select");
+  try {
+    const headers = {};
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    const resp = await fetch(`${llmUrl}/models`, { headers });
+    const data = await resp.json();
+    const models = data.data.map(m => m.id).sort();
+    sel.innerHTML = "";
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    }
+    if (defaultModel) sel.value = defaultModel;
+  } catch (e) {
+    sel.innerHTML = '<option value="qwen3:4b">qwen3:4b</option>';
+  }
+}
 </script>
 </body>
 </html>

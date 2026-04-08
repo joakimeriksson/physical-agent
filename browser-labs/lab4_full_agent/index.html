@@ -313,7 +313,7 @@ document.getElementById("btn-refresh").addEventListener("click", loadDevices);
 
 // --- Init ---
 fetch(`${API}/api/config`).then(r => r.json()).then(c => {
-  document.getElementById("cfg-ollama").textContent = c.ollama_url || "-";
+  document.getElementById("cfg-ollama").textContent = c.llm_url || c.ollama_url || "-";
   document.getElementById("cfg-mcp").textContent = c.mcp_url || "-";
   const sel = document.getElementById("cfg-model");
   sel.innerHTML = "";

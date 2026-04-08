@@ -1,6 +1,6 @@
 {
-  "ollama_url": "https://ollama.botbox.se",
-  "ollama_api_key": "paste-key-here",
+  "llm_url": "https://ollama.botbox.se/v1",
+  "llm_api_key": "paste-key-here",
 
   "mcp_url": "https://dirigera.botbox.se",
   "mcp_api_key": "paste-key-here",

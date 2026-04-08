@@ -34,8 +34,8 @@ def load_config():
     except FileNotFoundError:
         print(f"Warning: {config_path} not found, using defaults")
         CONFIG = {
-            "ollama_url": "https://ollama.botbox.se",
-            "ollama_api_key": "",
+            "llm_url": "https://ollama.botbox.se/v1",
+            "llm_api_key": "",
             "mcp_url": "https://dirigera.botbox.se",
             "mcp_api_key": "",
             "chat_model": "qwen3:4b",
@@ -121,12 +121,12 @@ class MCPClient:
 
 mcp = None
 
-# --- Ollama Client ---
+# --- LLM Client (OpenAI-compatible — works with Ollama, Groq, OpenAI, etc.) ---
 
-async def ollama_chat(messages, tools=None, model=None, images=None):
-    """Chat with Ollama. Returns the response message."""
-    url = CONFIG.get("ollama_url", "").rstrip("/")
-    api_key = CONFIG.get("ollama_api_key", "")
+async def llm_chat(messages, tools=None, model=None, images=None):
+    """Chat with any OpenAI-compatible API. Returns the response message dict."""
+    url = CONFIG.get("llm_url", "").rstrip("/")
+    api_key = CONFIG.get("llm_api_key", "")
 
     headers = {"Content-Type": "application/json"}
     if api_key:
@@ -135,24 +135,23 @@ async def ollama_chat(messages, tools=None, model=None, images=None):
     payload = {
         "model": model or CONFIG.get("chat_model", "qwen3:4b"),
         "messages": messages,
-        "stream": False,
     }
-    if tools:
+    if tools and not images:
         payload["tools"] = tools
     if images:
-        # Use /api/chat with multimodal messages for vision
-        payload["model"] = model or CONFIG.get("vision_model", "gemma3:latest")
-        payload.pop("tools", None)
-        # Add images to the last user message
+        payload["model"] = model or CONFIG.get("vision_model", payload["model"])
         for msg in reversed(payload["messages"]):
             if msg["role"] == "user":
-                msg["images"] = images
+                msg["content"] = [
+                    {"type": "text", "text": msg["content"]},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{images[0]}"}},
+                ]
                 break
 
     async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(f"{url}/api/chat", headers=headers, json=payload)
+        resp = await client.post(f"{url}/chat/completions", headers=headers, json=payload)
         resp.raise_for_status()
-        return resp.json().get("message", {})
+        return resp.json()["choices"][0]["message"]
 
 # --- IoT Tool definitions for Ollama ---
 
@@ -171,23 +170,24 @@ async def index(request: Request):
     return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 async def api_config(request: Request):
-    """Return config and available models from Ollama."""
+    """Return config and available models."""
+    url = CONFIG.get("llm_url", "").rstrip("/")
+    api_key = CONFIG.get("llm_api_key", "")
     models = []
     try:
-        url = CONFIG.get("ollama_url", "").rstrip("/")
         headers = {}
-        if CONFIG.get("ollama_api_key"):
-            headers["Authorization"] = f"Bearer {CONFIG['ollama_api_key']}"
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{url}/api/tags", headers=headers)
+            resp = await client.get(f"{url}/models", headers=headers)
             resp.raise_for_status()
-            models = [m["name"] for m in resp.json().get("models", [])]
+            models = sorted(m["id"] for m in resp.json()["data"])
     except Exception:
         pass
     return JSONResponse({
         "chat_model": CONFIG.get("chat_model"),
         "vision_model": CONFIG.get("vision_model"),
-        "ollama_url": CONFIG.get("ollama_url"),
+        "llm_url": url,
         "mcp_url": CONFIG.get("mcp_url"),
         "models": models,
     })
@@ -236,20 +236,22 @@ async def api_chat(request: Request):
 
     # Tool calling loop
     for _ in range(5):  # max 5 rounds
-        result = await ollama_chat(messages, tools=IOT_TOOLS, model=model)
+        result = await llm_chat(messages, tools=IOT_TOOLS, model=model)
 
         if result.get("tool_calls"):
             messages.append(result)
             for tc in result["tool_calls"]:
                 tool_name = tc["function"]["name"]
-                tool_args = tc["function"].get("arguments", {})
+                raw_args = tc["function"].get("arguments", {})
+                tool_args = json.loads(raw_args) if isinstance(raw_args, str) else raw_args
                 try:
                     tool_result = await mcp.call_tool(tool_name, tool_args)
                     tool_result_str = json.dumps(tool_result)
                 except Exception as e:
                     tool_result_str = json.dumps({"error": str(e)})
                 tool_calls_log.append({"tool": tool_name, "args": tool_args, "result": tool_result_str})
-                messages.append({"role": "tool", "content": tool_result_str})
+                messages.append({"role": "tool", "content": tool_result_str,
+                                 "tool_call_id": tc.get("id", tool_name)})
         else:
             # Final text response
             content = result.get("content", "")
@@ -270,7 +272,7 @@ async def api_analyze(request: Request):
     prompt = body.get("prompt", "Describe what you see in this image.")
 
     try:
-        result = await ollama_chat(
+        result = await llm_chat(
             [{"role": "user", "content": prompt}],
             images=[image_b64],
         )
@@ -305,7 +307,7 @@ if __name__ == "__main__":
     mcp = MCPClient(CONFIG["mcp_url"], CONFIG["mcp_api_key"])
 
     print(f"Full Agent Server on http://{args.host}:{args.port}")
-    print(f"Ollama: {CONFIG['ollama_url']}")
+    print(f"LLM: {CONFIG.get('llm_url')}")
     print(f"Dirigera MCP: {CONFIG['mcp_url']}")
 
     uvicorn.run(app, host=args.host, port=args.port)

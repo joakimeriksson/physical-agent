@@ -285,14 +285,13 @@
 <p class="subtitle">AI checks your clothing, grooming, background &amp; pose</p>
 
 <div class="settings">
-  <label for="ollama-url">Ollama URL:</label>
-  <input type="text" id="ollama-url" value="https://ollama.botbox.se" size="28">
+  <label for="ollama-url">LLM URL:</label>
+  <input type="text" id="ollama-url" value="https://ollama.botbox.se/v1" size="28">
   <label for="api-key">API Key:</label>
   <input type="password" id="api-key" value="" size="16" placeholder="paste key">
   <label for="model-select">Model:</label>
   <select id="model-select">
-    <option value="gemma3:4b" selected>gemma3:4b</option>
-    <option value="gemma3:12b">gemma3:12b</option>
+    <option value="">Loading models...</option>
   </select>
   <label><input type="checkbox" id="tts-enabled" checked> Speak results</label>
 </div>
@@ -411,29 +410,39 @@ function countdown(seconds, message) {
   });
 }
 
-// --- Ollama VLM ---
+// --- Vision LLM (OpenAI-compatible) ---
 
 async function analyzeAll(imageBase64) {
-  const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
   const model = document.getElementById("model-select").value;
 
   const headers = { "Content-Type": "application/json" };
   const apiKey = document.getElementById("api-key").value;
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-  const response = await fetch(`${ollamaUrl}/api/generate`, {
+  const response = await fetch(`${llmUrl}/chat/completions`, {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({ model, prompt: COMBINED_PROMPT, images: [imageBase64], stream: false })
+    body: JSON.stringify({
+      model,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: COMBINED_PROMPT },
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+        ]
+      }],
+    })
   });
 
   if (!response.ok) {
     const errBody = await response.text();
-    try { const e = JSON.parse(errBody); throw new Error(e.error || `Ollama returned ${response.status}`); }
-    catch (parseErr) { if (parseErr.message.includes("Ollama")) throw parseErr; throw new Error(`Ollama returned ${response.status}: ${errBody.slice(0, 200)}`); }
+    try { const e = JSON.parse(errBody); throw new Error(e.error || `LLM returned ${response.status}`); }
+    catch (parseErr) { if (parseErr.message.includes("LLM")) throw parseErr; throw new Error(`LLM returned ${response.status}: ${errBody.slice(0, 200)}`); }
   }
 
-  const text = (await response.json()).response || "";
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content || "";
   const results = [];
 
   for (const aspect of ASPECTS) {
@@ -599,10 +608,34 @@ btnRetry.addEventListener("click", retry);
 
 // Load defaults from shared config
 fetch("../config.json").then(r => r.json()).then(c => {
-  if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url;
-  if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
-  if (c.vision_model) document.getElementById("model-select").value = c.vision_model;
+  if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
+  else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
+  if (c.llm_api_key) document.getElementById("api-key").value = c.llm_api_key;
+  else if (c.ollama_api_key) document.getElementById("api-key").value = c.ollama_api_key;
+  loadModels(c.vision_model);
 }).catch(() => {});
+
+async function loadModels(defaultModel) {
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const apiKey = document.getElementById("api-key").value;
+  const sel = document.getElementById("model-select");
+  try {
+    const headers = {};
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    const resp = await fetch(`${llmUrl}/models`, { headers });
+    const data = await resp.json();
+    const models = data.data.map(m => m.id).sort();
+    sel.innerHTML = "";
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    }
+    if (defaultModel) sel.value = defaultModel;
+  } catch (e) {
+    sel.innerHTML = '<option value="gemma3:latest">gemma3:latest</option>';
+  }
+}
 
 speak("Hello! I'm your business readiness coach. Let's check if you're ready for your meeting.");
 startCamera();

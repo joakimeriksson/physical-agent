@@ -194,10 +194,14 @@
   <input type="text" id="mcp-url" value="https://dirigera.botbox.se" size="28">
   <label for="mcp-api-key">MCP API Key:</label>
   <input type="password" id="mcp-api-key" value="" size="18" placeholder="paste key">
-  <label for="ollama-url">Ollama:</label>
-  <input type="text" id="ollama-url" value="https://ollama.botbox.se" size="22">
-  <label for="ollama-api-key">Ollama Key:</label>
+  <label for="ollama-url">LLM:</label>
+  <input type="text" id="ollama-url" value="https://ollama.botbox.se/v1" size="22">
+  <label for="ollama-api-key">LLM Key:</label>
   <input type="password" id="ollama-api-key" value="" size="14" placeholder="paste key">
+  <label for="model-select">Model:</label>
+  <select id="model-select">
+    <option value="">Loading models...</option>
+  </select>
   <button id="btn-connect">Connect</button>
   <span id="auth-status"></span>
 </div>
@@ -493,21 +497,20 @@ async function executeIoTTool(name, args) {
   }
 }
 
-async function chatWithOllama(messages) {
-  const ollamaUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
-  const ollamaKey = document.getElementById("ollama-api-key").value;
+async function chatWithLLM(messages) {
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const llmKey = document.getElementById("ollama-api-key").value;
 
   const payload = {
-    model: "qwen3:4b",
+    model: document.getElementById("model-select").value || "qwen3:4b",
     messages: messages,
     tools: IOT_TOOLS,
-    stream: false
   };
 
   const headers = { "Content-Type": "application/json" };
-  if (ollamaKey) headers["Authorization"] = `Bearer ${ollamaKey}`;
+  if (llmKey) headers["Authorization"] = `Bearer ${llmKey}`;
 
-  const response = await fetch(`${ollamaUrl}/api/chat`, {
+  const response = await fetch(`${llmUrl}/chat/completions`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(payload)
@@ -515,10 +518,11 @@ async function chatWithOllama(messages) {
 
   if (!response.ok) {
     const errBody = await response.text();
-    try { const e = JSON.parse(errBody); throw new Error(e.error || `Ollama returned ${response.status}`); }
-    catch (parseErr) { if (parseErr.message.includes("Ollama")) throw parseErr; throw new Error(`Ollama returned ${response.status}: ${errBody.slice(0, 200)}`); }
+    try { const e = JSON.parse(errBody); throw new Error(e.error || `LLM returned ${response.status}`); }
+    catch (parseErr) { if (parseErr.message.includes("LLM")) throw parseErr; throw new Error(`LLM returned ${response.status}: ${errBody.slice(0, 200)}`); }
   }
-  return await response.json();
+  const result = await response.json();
+  return { message: result.choices[0].message };
 }
 
 async function sendMessage() {
@@ -536,7 +540,7 @@ async function sendMessage() {
   thinkingEl.innerHTML = '<span class="spinner-inline"></span>Thinking...';
 
   try {
-    let result = await chatWithOllama([
+    let result = await chatWithLLM([
       { role: "system", content: "You are a smart home assistant controlling IKEA Dirigera devices. Use your tools to list and control lights, outlets, and sensors. Always list devices first before trying to control them. Be concise." },
       ...conversationHistory
     ]);
@@ -548,7 +552,8 @@ async function sendMessage() {
 
       for (const tc of result.message.tool_calls) {
         const toolName = tc.function.name;
-        const toolArgs = tc.function.arguments || {};
+        const toolArgs = typeof tc.function.arguments === "string"
+          ? JSON.parse(tc.function.arguments) : tc.function.arguments || {};
 
         const thinkingEl2 = addMessage("assistant", "", "thinking");
         thinkingEl2.innerHTML = `<span class="spinner-inline"></span>Calling ${toolName}...`;
@@ -557,7 +562,7 @@ async function sendMessage() {
         thinkingEl2.remove();
 
         addToolCallMessage(toolName, toolArgs, toolResult);
-        conversationHistory.push({ role: "tool", content: toolResult });
+        conversationHistory.push({ role: "tool", content: toolResult, tool_call_id: tc.id || toolName });
       }
 
       // Refresh device panel after any IoT action
@@ -565,7 +570,7 @@ async function sendMessage() {
 
       const thinkingEl3 = addMessage("assistant", "", "thinking");
       thinkingEl3.innerHTML = '<span class="spinner-inline"></span>Processing...';
-      result = await chatWithOllama([
+      result = await chatWithLLM([
         { role: "system", content: "You are a smart home assistant controlling IKEA Dirigera devices. Use your tools to list and control lights, outlets, and sensors. Always list devices first before trying to control them. Be concise." },
         ...conversationHistory
       ]);
@@ -606,9 +611,34 @@ userInput.addEventListener("keydown", (e) => {
 fetch("../config.json").then(r => r.json()).then(c => {
   if (c.mcp_url) document.getElementById("mcp-url").value = c.mcp_url;
   if (c.mcp_api_key) document.getElementById("mcp-api-key").value = c.mcp_api_key;
-  if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url;
-  if (c.ollama_api_key) document.getElementById("ollama-api-key").value = c.ollama_api_key;
+  if (c.llm_url) document.getElementById("ollama-url").value = c.llm_url;
+  else if (c.ollama_url) document.getElementById("ollama-url").value = c.ollama_url + "/v1";
+  if (c.llm_api_key) document.getElementById("ollama-api-key").value = c.llm_api_key;
+  else if (c.ollama_api_key) document.getElementById("ollama-api-key").value = c.ollama_api_key;
+  loadModels(c.chat_model);
 }).catch(() => {});
+
+async function loadModels(defaultModel) {
+  const llmUrl = document.getElementById("ollama-url").value.replace(/\/$/, "");
+  const apiKey = document.getElementById("ollama-api-key").value;
+  const sel = document.getElementById("model-select");
+  try {
+    const headers = {};
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    const resp = await fetch(`${llmUrl}/models`, { headers });
+    const data = await resp.json();
+    const models = data.data.map(m => m.id).sort();
+    sel.innerHTML = "";
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    }
+    if (defaultModel) sel.value = defaultModel;
+  } catch (e) {
+    sel.innerHTML = '<option value="qwen3:4b">qwen3:4b</option>';
+  }
+}
 </script>
 </body>
 </html>
