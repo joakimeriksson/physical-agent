@@ -38,7 +38,7 @@ def load_config():
             "llm_api_key": "",
             "mcp_url": "https://dirigera.botbox.se",
             "mcp_api_key": "",
-            "chat_model": "qwen3:4b",
+            "chat_model": "gemma4:e2b",
             "vision_model": "gemma3:latest",
         }
 

@@ -502,7 +502,7 @@ async function chatWithLLM(messages) {
   const llmKey = document.getElementById("ollama-api-key").value;
 
   const payload = {
-    model: document.getElementById("model-select").value || "qwen3:4b",
+    model: document.getElementById("model-select").value || "gemma4:e2b",
     messages: messages,
     tools: IOT_TOOLS,
   };
@@ -667,7 +667,7 @@ async function loadModels(defaultModel) {
     }
     if (defaultModel) sel.value = defaultModel;
   } catch (e) {
-    sel.innerHTML = '<option value="qwen3:4b">qwen3:4b</option>';
+    sel.innerHTML = '<option value="gemma4:e2b">gemma4:e2b</option>';
   }
   saveSettings();
 }
