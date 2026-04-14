@@ -123,7 +123,8 @@
 </div>
 
 <script>
-const API = ""; // same origin
+// Auto-detect base path (works behind reverse proxy at /app/, /foo/bar/, or root /)
+const API = new URL(".", window.location).pathname.replace(/\/$/, "");
 
 // --- DOM ---
 const messagesEl = document.getElementById("messages");
@@ -311,6 +312,22 @@ document.getElementById("btn-snap").addEventListener("click", snapAndAsk);
 document.getElementById("btn-cam-toggle").addEventListener("click", () => { cameraOn ? stopCamera() : startCamera(); });
 document.getElementById("btn-refresh").addEventListener("click", loadDevices);
 
+// --- Settings persistence (localStorage) ---
+const STORAGE_KEY = "lab4_settings";
+
+function saveSettings() {
+  const data = { model: document.getElementById("cfg-model").value };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getSavedSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+  } catch { return null; }
+}
+
+document.getElementById("cfg-model").addEventListener("change", saveSettings);
+
 // --- Init ---
 fetch(`${API}/api/config`).then(r => r.json()).then(c => {
   document.getElementById("cfg-ollama").textContent = c.llm_url || c.ollama_url || "-";
@@ -322,7 +339,14 @@ fetch(`${API}/api/config`).then(r => r.json()).then(c => {
     opt.value = m; opt.textContent = m;
     sel.appendChild(opt);
   }
-  if (c.chat_model) sel.value = c.chat_model;
+  // Restore saved model, fall back to server default
+  const saved = getSavedSettings();
+  if (saved?.model && [...sel.options].some(o => o.value === saved.model)) {
+    sel.value = saved.model;
+  } else if (c.chat_model) {
+    sel.value = c.chat_model;
+  }
+  saveSettings();
 }).catch(() => {});
 loadDevices();
 startCamera();

@@ -297,14 +297,16 @@ app = Starlette(routes=[
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Load config and init MCP at module level so it works both with
+# `python server.py` and `uvicorn server:app`
+load_config()
+mcp = MCPClient(CONFIG["mcp_url"], CONFIG["mcp_api_key"])
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Full Agent Server")
     parser.add_argument("--port", type=int, default=8080, help="Port (default: 8080)")
     parser.add_argument("--host", default="127.0.0.1", help="Host")
     args = parser.parse_args()
-
-    load_config()
-    mcp = MCPClient(CONFIG["mcp_url"], CONFIG["mcp_api_key"])
 
     print(f"Full Agent Server on http://{args.host}:{args.port}")
     print(f"LLM: {CONFIG.get('llm_url')}")
