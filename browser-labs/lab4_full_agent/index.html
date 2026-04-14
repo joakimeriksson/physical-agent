@@ -66,6 +66,21 @@
   .camera-controls button { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
   .camera-controls button.primary { background: var(--accent); color: #000; border-color: var(--accent); }
 
+  /* Settings panel */
+  .settings-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
+  .settings-overlay.open { display: flex; }
+  .settings-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; width: 480px; max-width: 90vw; max-height: 90vh; overflow-y: auto; }
+  .settings-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .settings-panel label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.2rem; margin-top: 0.8rem; }
+  .settings-panel input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; }
+  .settings-panel input:focus { outline: none; border-color: var(--accent); }
+  .settings-btns { display: flex; gap: 0.5rem; margin-top: 1.2rem; justify-content: flex-end; }
+  .settings-btns button { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border); }
+  .settings-btns .btn-save { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .settings-btns .btn-cancel { background: var(--surface); color: var(--text); }
+  .settings-status { font-size: 0.8rem; margin-top: 0.5rem; }
+  .btn-settings { background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.2rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
   @media (max-width: 1000px) {
     .camera-panel { display: none; }
     .devices { width: 220px; }
@@ -86,6 +101,7 @@
     <select id="cfg-model" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:0.2rem 0.4rem;border-radius:4px;font-size:0.8rem">
       <option value="">Loading models...</option>
     </select>
+    <button class="btn-settings" id="btn-settings">Settings</button>
     <span class="status" id="status">Connecting...</span>
   </div>
 </header>
@@ -122,6 +138,25 @@
   </div>
 </div>
 
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-panel">
+    <h2>Settings</h2>
+    <label>LLM Endpoint (OpenAI-compatible)</label>
+    <input type="text" id="set-llm-url" placeholder="https://ollama.example.com/v1">
+    <label>LLM API Key</label>
+    <input type="password" id="set-llm-key" placeholder="(leave empty if not needed)">
+    <label>MCP Server URL</label>
+    <input type="text" id="set-mcp-url" placeholder="https://mcp.example.com">
+    <label>MCP API Key</label>
+    <input type="password" id="set-mcp-key" placeholder="(leave empty if not needed)">
+    <div class="settings-status" id="settings-status"></div>
+    <div class="settings-btns">
+      <button class="btn-cancel" id="settings-cancel">Cancel</button>
+      <button class="btn-save" id="settings-save">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // Auto-detect base path (works behind reverse proxy at /app/, /foo/bar/, or root /)
 const API = new URL(".", window.location).pathname.replace(/\/$/, "");
@@ -144,15 +179,29 @@ function addMsg(cls, text) {
   return d;
 }
 
-function addToolMsg(calls) {
-  for (const tc of calls) {
-    const d = document.createElement("div");
-    d.className = "msg tool";
-    const short = tc.result.length > 150 ? tc.result.slice(0, 150) + "..." : tc.result;
-    d.innerHTML = `<div class="tool-label">Tool: ${tc.tool}</div>${JSON.stringify(tc.args)}\n→ ${short}`;
-    messagesEl.appendChild(d);
+function renderSteps(steps) {
+  let lastText = "";
+  let hadToolCalls = false;
+  for (const step of steps) {
+    if (step.type === "thinking") {
+      addMsg("thinking", step.content);
+    } else if (step.type === "text") {
+      addMsg("assistant", step.content);
+      lastText = step.content;
+    } else if (step.type === "tool") {
+      hadToolCalls = true;
+      const d = document.createElement("div");
+      d.className = "msg tool";
+      const short = step.result.length > 150 ? step.result.slice(0, 150) + "..." : step.result;
+      d.innerHTML = `<div class="tool-label">Tool: ${step.tool}</div>${JSON.stringify(step.args)}\n→ ${short}`;
+      messagesEl.appendChild(d);
+    } else if (step.type === "error") {
+      addMsg("assistant", step.content);
+      lastText = step.content;
+    }
   }
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  return { lastText, hadToolCalls };
 }
 
 // --- Chat ---
@@ -182,12 +231,13 @@ async function sendChat(text) {
       addMsg("assistant", `Error: ${err}`);
     } else {
       const data = await resp.json();
-      if (data.tool_calls && data.tool_calls.length > 0) addToolMsg(data.tool_calls);
-      addMsg("assistant", data.response);
-      chatHistory.push({role: "user", content: text});
-      chatHistory.push({role: "assistant", content: data.response});
+      const { lastText, hadToolCalls } = renderSteps(data.steps || []);
+      if (lastText) {
+        chatHistory.push({role: "user", content: text});
+        chatHistory.push({role: "assistant", content: lastText});
+      }
       // Refresh devices after commands
-      if (data.tool_calls?.some(tc => tc.tool.startsWith("set_"))) loadDevices();
+      if (hadToolCalls) loadDevices();
     }
   } catch (e) {
     thinking.remove();
@@ -315,7 +365,7 @@ document.getElementById("btn-refresh").addEventListener("click", loadDevices);
 // --- Settings persistence (localStorage) ---
 const STORAGE_KEY = "lab4_settings";
 
-function saveSettings() {
+function saveLocalSettings() {
   const data = { model: document.getElementById("cfg-model").value };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -326,11 +376,68 @@ function getSavedSettings() {
   } catch { return null; }
 }
 
-document.getElementById("cfg-model").addEventListener("change", saveSettings);
+document.getElementById("cfg-model").addEventListener("change", saveLocalSettings);
+
+// --- Settings panel ---
+
+const settingsOverlay = document.getElementById("settings-overlay");
+const settingsStatus = document.getElementById("settings-status");
+
+document.getElementById("btn-settings").addEventListener("click", async () => {
+  settingsStatus.textContent = "";
+  // Load current config into the form
+  try {
+    const resp = await fetch(`${API}/api/config`);
+    const c = await resp.json();
+    document.getElementById("set-llm-url").value = c.llm_url || "";
+    document.getElementById("set-llm-key").value = c.llm_api_key || "";
+    document.getElementById("set-mcp-url").value = c.mcp_url || "";
+    document.getElementById("set-mcp-key").value = c.mcp_api_key || "";
+  } catch {}
+  settingsOverlay.classList.add("open");
+});
+
+document.getElementById("settings-cancel").addEventListener("click", () => {
+  settingsOverlay.classList.remove("open");
+});
+
+settingsOverlay.addEventListener("click", (e) => {
+  if (e.target === settingsOverlay) settingsOverlay.classList.remove("open");
+});
+
+document.getElementById("settings-save").addEventListener("click", async () => {
+  const btn = document.getElementById("settings-save");
+  btn.disabled = true;
+  settingsStatus.textContent = "Saving...";
+  settingsStatus.style.color = "var(--muted)";
+  try {
+    const resp = await fetch(`${API}/api/config`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        llm_url: document.getElementById("set-llm-url").value.trim(),
+        llm_api_key: document.getElementById("set-llm-key").value,
+        mcp_url: document.getElementById("set-mcp-url").value.trim(),
+        mcp_api_key: document.getElementById("set-mcp-key").value,
+      })
+    });
+    const c = await resp.json();
+    applyConfig(c);
+    settingsStatus.textContent = `Connected. ${c.models?.length || 0} models available.`;
+    settingsStatus.style.color = "var(--green)";
+    setTimeout(() => settingsOverlay.classList.remove("open"), 1000);
+    loadDevices();
+  } catch (e) {
+    settingsStatus.textContent = `Error: ${e.message}`;
+    settingsStatus.style.color = "var(--red)";
+  }
+  btn.disabled = false;
+});
 
 // --- Init ---
-fetch(`${API}/api/config`).then(r => r.json()).then(c => {
-  document.getElementById("cfg-ollama").textContent = c.llm_url || c.ollama_url || "-";
+
+function applyConfig(c) {
+  document.getElementById("cfg-ollama").textContent = c.llm_url || "-";
   document.getElementById("cfg-mcp").textContent = c.mcp_url || "-";
   const sel = document.getElementById("cfg-model");
   sel.innerHTML = "";
@@ -339,15 +446,16 @@ fetch(`${API}/api/config`).then(r => r.json()).then(c => {
     opt.value = m; opt.textContent = m;
     sel.appendChild(opt);
   }
-  // Restore saved model, fall back to server default
   const saved = getSavedSettings();
   if (saved?.model && [...sel.options].some(o => o.value === saved.model)) {
     sel.value = saved.model;
   } else if (c.chat_model) {
     sel.value = c.chat_model;
   }
-  saveSettings();
-}).catch(() => {});
+  saveLocalSettings();
+}
+
+fetch(`${API}/api/config`).then(r => r.json()).then(applyConfig).catch(() => {});
 loadDevices();
 startCamera();
 setInterval(loadDevices, 30000);

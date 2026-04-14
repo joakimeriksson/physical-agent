@@ -17,7 +17,7 @@ Browser                          Python Server (localhost:8080)
 
 ```bash
 cd browser-labs/lab4_full_agent
-pixi install
+uv sync
 ```
 
 Edit `../config.json` with your API keys (copy from `../config.example.json` if needed).
@@ -25,7 +25,7 @@ Edit `../config.json` with your API keys (copy from `../config.example.json` if 
 ## Run
 
 ```bash
-pixi run server
+uv run python server.py
 ```
 
 Open http://localhost:8080 in your browser.
