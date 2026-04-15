@@ -3,7 +3,7 @@
 A full smart home agent with camera, chat, and IoT control.
 
 ```
-Browser                          Python Server (localhost:8080)
+Browser                          Python Server (localhost:9090)
 ├── Chat UI                 →    POST /api/chat → Ollama + tool calling → MCP
 ├── Camera (getUserMedia)   →    POST /api/analyze → Ollama vision
 ├── Device panel            ←    GET /api/sensors, /api/lights
@@ -28,7 +28,7 @@ Edit `../config.json` with your API keys (copy from `../config.example.json` if 
 uv run python server.py
 ```
 
-Open http://localhost:8080 in your browser.
+Open http://localhost:9090 in your browser.
 
 ## What to try
 

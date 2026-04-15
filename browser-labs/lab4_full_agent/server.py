@@ -6,7 +6,7 @@ This server handles LLM calls and IoT device control.
 
 Usage:
     uv run python server.py
-    uv run python server.py --port 8080
+    uv run python server.py --port 9090
 """
 
 import argparse
@@ -400,7 +400,7 @@ mcp = MCPClient(CONFIG["mcp_url"], CONFIG["mcp_api_key"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Full Agent Server")
-    parser.add_argument("--port", type=int, default=8080, help="Port (default: 8080)")
+    parser.add_argument("--port", type=int, default=9090, help="Port (default: 9090)")
     parser.add_argument("--host", default="127.0.0.1", help="Host")
     args = parser.parse_args()
 
