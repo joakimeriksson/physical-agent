@@ -13,7 +13,9 @@ Everything runs in the browser — no backend needed.
 ## Run
 
 ```bash
-python -m http.server 9090     # or: uv run python -m http.server 9090
+python serve.py
 ```
 
-Open <http://localhost:9090/> and enter the Ollama URL + API key in the settings bar.
+Open <http://localhost:9090/lab2_business_coach/> and enter the Ollama URL + API key in the settings bar.
+
+(`serve.py` serves from `browser-labs/` so the shared `../config.json` is reachable.)

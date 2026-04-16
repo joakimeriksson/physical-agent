@@ -12,7 +12,9 @@ Try: *"Turn on Lampa Soffa"*, *"Dim all lights to 20%"*, *"What's the temperatur
 ## Run
 
 ```bash
-python -m http.server 9090     # or: uv run python -m http.server 9090
+python serve.py
 ```
 
-Open <http://localhost:9090/> and fill in both Ollama and MCP URL + API keys in the settings bar.
+Open <http://localhost:9090/lab3_iot_dashboard/> and fill in both Ollama and MCP URL + API keys in the settings bar.
+
+(`serve.py` serves from `browser-labs/` so the shared `../config.json` is reachable.)

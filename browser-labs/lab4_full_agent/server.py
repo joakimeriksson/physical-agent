@@ -107,22 +107,41 @@ class MCPClient:
             self.tools = None
             return await self._send_mcp(method, params)
 
+        def _extract(data):
+            if not isinstance(data, dict):
+                return None
+            if "result" in data:
+                return ("result", data["result"])
+            if "error" in data:
+                err = data["error"]
+                msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                return ("error", msg)
+            return None
+
         # Parse SSE or JSON response
         text = resp.text
         for line in text.split("\n"):
             if line.startswith("data: "):
-                data = json.loads(line[6:])
-                if "result" in data:
-                    return data["result"]
-                if "error" in data:
-                    raise Exception(data["error"]["message"])
+                try:
+                    data = json.loads(line[6:])
+                except json.JSONDecodeError:
+                    continue
+                parsed = _extract(data)
+                if parsed and parsed[0] == "result":
+                    return parsed[1]
+                if parsed and parsed[0] == "error":
+                    raise Exception(parsed[1])
         # Try direct JSON
-        data = resp.json()
-        if "result" in data:
-            return data["result"]
-        if "error" in data:
-            raise Exception(data["error"]["message"])
-        raise Exception("Unexpected MCP response")
+        try:
+            data = resp.json()
+        except Exception:
+            raise Exception(f"Unexpected MCP response ({resp.status_code}): {text[:200]}")
+        parsed = _extract(data)
+        if parsed and parsed[0] == "result":
+            return parsed[1]
+        if parsed and parsed[0] == "error":
+            raise Exception(parsed[1])
+        raise Exception(f"Unexpected MCP response: {str(data)[:200]}")
 
     async def list_tools(self):
         """Fetch tools from MCP and convert to OpenAI function-calling format."""

@@ -13,7 +13,9 @@ Try: *"What's 17 * 23 plus the current hour?"* or *"Roll 2d20."*
 ## Run
 
 ```bash
-python -m http.server 9090     # or: uv run python -m http.server 9090
+python serve.py
 ```
 
-Open <http://localhost:9090/> and enter the Ollama URL + API key in the settings bar.
+Open <http://localhost:9090/lab1_chat_agent/> and enter the Ollama URL + API key in the settings bar.
+
+(`serve.py` serves from `browser-labs/` so the shared `../config.json` is reachable.)
